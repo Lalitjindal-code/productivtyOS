@@ -1,0 +1,131 @@
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;500;600;700&family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* === BACKGROUNDS === */
+  --bg-void: #070709;
+  --bg-base: #0D0D12;
+  --bg-surface: #13131A;
+  --bg-elevated: #1A1A24;
+  --bg-overlay: #22222F;
+  --bg-glass: rgba(19, 19, 26, 0.72);
+
+  /* === PRIMARY — Electric Amber === */
+  --primary-50: #FFF8E7;
+  --primary-100: #FFEFC4;
+  --primary-200: #FFD97A;
+  --primary-300: #FFC340;
+  --primary-400: #FFAD00;
+  --primary-500: #E69900;
+  --primary-600: #CC8800;
+  --primary-700: #995C00;
+  --primary-glow: rgba(255, 173, 0, 0.20);
+  --primary-glow-strong: rgba(255, 173, 0, 0.40);
+
+  /* === SECONDARY — Plasma Cyan === */
+  --secondary-50: #E0FFFE;
+  --secondary-100: #B3FFFC;
+  --secondary-200: #4DFFF8;
+  --secondary-300: #00E8FF;
+  --secondary-400: #00C8E0;
+  --secondary-500: #00A8C0;
+  --secondary-600: #0088A0;
+  --secondary-glow: rgba(0, 200, 224, 0.18);
+  --secondary-glow-strong: rgba(0, 200, 224, 0.35);
+
+  /* === ACCENT — Void Purple === */
+  --accent-300: #C084FC;
+  --accent-400: #A855F7;
+  --accent-500: #9333EA;
+  --accent-600: #7C3AED;
+  --accent-glow: rgba(168, 85, 247, 0.20);
+
+  /* === SEMANTIC COLORS === */
+  --success-400: #22C55E;
+  --success-500: #16A34A;
+  --success-glow: rgba(34, 197, 94, 0.18);
+
+  --danger-400: #EF4444;
+  --danger-500: #DC2626;
+  --danger-glow: rgba(239, 68, 68, 0.20);
+
+  --warning-400: #F59E0B;
+  --warning-500: #D97706;
+  --warning-glow: rgba(245, 158, 11, 0.18);
+
+  --info-400: #38BDF8;
+  --info-glow: rgba(56, 189, 248, 0.15);
+
+  /* === NEUTRAL SCALE === */
+  --neutral-50: #F8F8FA;
+  --neutral-100: #E8E8F0;
+  --neutral-200: #C8C8D8;
+  --neutral-300: #A0A0B8;
+  --neutral-400: #7878A0;
+  --neutral-500: #555570;
+  --neutral-600: #383850;
+  --neutral-700: #252535;
+  --neutral-800: #181826;
+  --neutral-900: #0D0D18;
+
+  /* === TEXT === */
+  --text-primary: #F0F0F8;
+  --text-secondary: #9090B0;
+  --text-muted: #505068;
+  --text-inverted: #0D0D12;
+
+  /* === BORDERS === */
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-default: rgba(255, 255, 255, 0.10);
+  --border-strong: rgba(255, 255, 255, 0.18);
+  --border-primary: rgba(255, 173, 0, 0.30);
+  --border-secondary: rgba(0, 200, 224, 0.25);
+}
+
+[data-theme="light"] {
+  --bg-void: #F0F0F5;
+  --bg-base: #F8F8FC;
+  --bg-surface: #FFFFFF;
+  --bg-elevated: #F4F4FA;
+  --bg-glass: rgba(255, 255, 255, 0.80);
+  --text-primary: #14141E;
+  --text-secondary: #50507A;
+  --text-muted: #9090B0;
+  --border-subtle: rgba(0, 0, 0, 0.06);
+  --border-default: rgba(0, 0, 0, 0.10);
+  --border-strong: rgba(0, 0, 0, 0.16);
+  --primary-glow: rgba(255, 173, 0, 0.12);
+}
+
+body {
+  background-color: var(--bg-base);
+  color: var(--text-primary);
+  font-family: 'Outfit', sans-serif;
+  margin: 0;
+  min-height: 100vh;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-void);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--neutral-700);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--neutral-500);
+}
+
+@layer utilities {
+  .text-shadow-glow {
+    text-shadow: 0 0 10px var(--primary-glow-strong);
+  }
+}

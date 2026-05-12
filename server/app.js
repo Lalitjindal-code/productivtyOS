@@ -1,0 +1,29 @@
+const express = require('express');
+const cors = require('cors');
+const helmet = require('helmet');
+
+const taskRoutes = require('./routes/taskRoutes');
+const goalRoutes = require('./routes/goalRoutes');
+const pomodoroRoutes = require('./routes/pomodoroRoutes');
+const userRoutes = require('./routes/userRoutes');
+const rageRoutes = require('./routes/rageRoutes');
+const memoryRoutes = require('./routes/memoryRoutes');
+const journalRoutes = require('./routes/journalRoutes');
+const aiRoutes = require('./routes/ai');
+
+const app = express();
+
+app.use(cors());
+app.use(helmet());
+app.use(express.json());
+
+app.use('/api/tasks', taskRoutes);
+app.use('/api/goals', goalRoutes);
+app.use('/api/pomodoro', pomodoroRoutes);
+app.use('/api/user', userRoutes);
+app.use('/api/rage', rageRoutes);
+app.use('/api/memory', memoryRoutes);
+app.use('/api/journal', journalRoutes);
+app.use('/api/ai', aiRoutes);
+
+module.exports = app;
