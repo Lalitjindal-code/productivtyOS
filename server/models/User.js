@@ -32,7 +32,29 @@ const userSchema = new mongoose.Schema({
   aiUsage: {
     dailyCount: { type: Number, default: 0 },
     lastUsed: { type: Date }
-  }
+  },
+  character: {
+    class: { type: String, enum: ['Warrior', 'Scholar', 'Cyborg', 'Monk', 'None'], default: 'None' },
+    avatar: { type: String, default: '👤' }
+  },
+  rpgStats: {
+    level: { type: Number, default: 1 },
+    currentXP: { type: Number, default: 0 },
+    nextLevelXP: { type: Number, default: 100 },
+    hp: { type: Number, default: 100 },
+    maxHP: { type: Number, default: 100 },
+    strength: { type: Number, default: 10 },
+    intelligence: { type: Number, default: 10 },
+    charisma: { type: Number, default: 10 },
+    wisdom: { type: Number, default: 10 },
+    luck: { type: Number, default: 10 }
+  },
+  achievements: [{
+    id: { type: String },
+    title: { type: String },
+    description: { type: String },
+    unlockedAt: { type: Date, default: Date.now }
+  }]
 }, { timestamps: true });
 
 module.exports = mongoose.model('User', userSchema);

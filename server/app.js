@@ -10,6 +10,7 @@ const rageRoutes = require('./routes/rageRoutes');
 const memoryRoutes = require('./routes/memoryRoutes');
 const journalRoutes = require('./routes/journalRoutes');
 const aiRoutes = require('./routes/ai');
+const gymRoutes = require('./routes/gymRoutes');
 
 const app = express();
 
@@ -25,5 +26,6 @@ app.use('/api/rage', rageRoutes);
 app.use('/api/memory', memoryRoutes);
 app.use('/api/journal', journalRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/gym', gymRoutes);
 
 module.exports = app;

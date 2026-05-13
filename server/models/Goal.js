@@ -26,6 +26,13 @@ const goalSchema = new mongoose.Schema({
     end: { type: Date, required: true }
   },
   milestones: [milestoneSchema],
+  boss: {
+    name: { type: String, default: 'The Productivity Void' },
+    avatar: { type: String, default: '🌑' },
+    hp: { type: Number, default: 100 },
+    maxHP: { type: Number, default: 100 },
+    isDefeated: { type: Boolean, default: false }
+  },
   xpEarned: { type: Number, default: 0 }
 }, {
   timestamps: true

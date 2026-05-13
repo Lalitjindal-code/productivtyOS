@@ -57,21 +57,31 @@ exports.generateInsights = async (req, res) => {
       ).sort((a, b) => b[1] - a[1])[0]?.[0] || 'none'
     };
 
-    const insights = await aiService.generateWeeklyInsights({
+    const insightData = await aiService.generateWeeklyMemoryInsight({
       weeklyStats,
       goals,
       patterns: { personalNotes: memory.personalNotes.map(n => n.content) }
     });
 
-    if (insights.length > 0) {
-      memory.weeklyInsights.unshift(...insights.map(i => ({ ...i, generatedAt: new Date() })));
-      // Keep only last 20 insights
+    if (insightData?.insights?.length > 0) {
+      // Format insights for storage
+      const insightStrings = insightData.insights.map(i => 
+        typeof i === 'string' ? i : (i?.description || i?.title || 'Insight')
+      );
+      
+      memory.weeklyInsights.unshift({
+        weekOf: new Date(),
+        insights: insightStrings,
+        generatedAt: new Date()
+      });
+      
+      // Keep only last 20 weeks of insights
       if (memory.weeklyInsights.length > 20) memory.weeklyInsights = memory.weeklyInsights.slice(0, 20);
       memory.lastAggregatedAt = new Date();
       await memory.save();
     }
 
-    res.status(200).json({ insights, memory });
+    res.status(200).json({ insights: insightData, memory });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -139,16 +149,18 @@ exports.chat = async (req, res) => {
       completedAt: { $gte: new Date(new Date().setHours(0, 0, 0, 0)) }
     });
 
-    const reply = await aiService.chat({
-      messages,
-      userContext: {
+    const lastMessage = messages[messages.length - 1]?.content || 'Hello';
+    const reply = await aiService.chatWithBrain(
+      lastMessage,
+      messages.slice(0, -1),
+      {
         streak: user?.streak?.current || 0,
         goals,
         weekCompletion: { completed: weekCompleted },
         pomodorosToday,
-        personalNotes: memory.personalNotes.map(n => n.content)
+        personalNotes: memory.personalNotes.map(n => n.content),
       }
-    });
+    );
 
     res.status(200).json({ reply });
   } catch (err) {

@@ -1,5 +1,6 @@
 const Task = require('../models/Task');
 const { touchStreak } = require('./userController');
+const rpgService = require('../services/rpgService');
 
 // MVP Hardcoded User ID
 const TEMP_USER_ID = 'user_mvp_1';
@@ -62,7 +63,10 @@ exports.completeTask = async (req, res) => {
     
     task.status = 'completed';
     task.completedAt = new Date();
-    task.xpEarned = task.priority === 'high' || task.priority === 'critical' ? 50 : 25;
+    
+    // RPG XP Calculation
+    const xpGain = rpgService.calculateXPGain(task);
+    task.xpEarned = xpGain;
     
     // Redeem from Wall of Shame if this was a penalty task
     if (task.penaltyTaskFor) {
@@ -74,9 +78,25 @@ exports.completeTask = async (req, res) => {
     }
 
     await task.save();
+    
+    // Update User XP and Level
+    const { user, leveledUp } = await rpgService.updateUserXP(TEMP_USER_ID, xpGain);
+    
+    // Check achievements
+    const newAchievements = await rpgService.checkAchievements(TEMP_USER_ID, { task });
+
     // Touch streak on every task completion
     touchStreak().catch(console.error);
-    res.status(200).json(task);
+
+    res.status(200).json({
+      task,
+      rpgUpdate: {
+        xpGain,
+        leveledUp,
+        currentLevel: user.rpgStats.level,
+        newAchievements
+      }
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -92,7 +112,16 @@ exports.failTask = async (req, res) => {
     task.wallOfShame = true;
     
     await task.save();
-    res.status(200).json(task);
+
+    // HP Loss on failure
+    const user = await rpgService.updateUserHP(TEMP_USER_ID, 10);
+
+    res.status(200).json({
+      task,
+      rpgUpdate: {
+        hpRemaining: user.rpgStats.hp
+      }
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

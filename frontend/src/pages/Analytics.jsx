@@ -7,6 +7,7 @@ import {
 import { Card } from '../components/common/Card';
 import { format } from 'date-fns';
 import api from '../services/api';
+import { aiService } from '../services/aiService';
 
 const fetchMemory = async () => {
   const res = await api.get('/memory');
@@ -70,14 +71,22 @@ const AskBrainChat = () => {
     if (!content) return;
     setInput('');
 
-    const newMessages = [...messages, { role: 'user', content }];
+    const userMessage = { role: 'user', content };
+    const newMessages = [...messages, userMessage];
     setMessages(newMessages);
     setLoading(true);
 
     try {
-      const res = await api.post('/memory/chat', { messages: newMessages });
-      setMessages([...newMessages, { role: 'assistant', content: res.data.reply }]);
-    } catch {
+      // Call aiService which handles proper endpoint and parameter format
+      const result = await aiService.sendMessage(content, messages);
+      
+      if (result.error) {
+        setMessages([...newMessages, { role: 'assistant', content: result.error.message }]);
+      } else {
+        const replyText = result.data?.reply || 'Sorry, could not get response.';
+        setMessages([...newMessages, { role: 'assistant', content: replyText }]);
+      }
+    } catch (error) {
       setMessages([...newMessages, { role: 'assistant', content: 'AI reach nahi ho paaya. Server `.env` mein `GROQ_API_KEY` aur `GEMINI_API_KEY` configured hai kya, check kar lo.' }]);
     } finally {
       setLoading(false);

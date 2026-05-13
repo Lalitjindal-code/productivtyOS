@@ -190,8 +190,15 @@ export const aiService = {
     }
 
     try {
-      const response = await requestWithRetry(() => aiClient.post('/chat', { message, conversationHistory: history }));
-      return buildSuccess(response.data.data);
+      const response = await requestWithRetry(() => aiClient.post('/chat', { 
+        message, 
+        conversationHistory: history 
+      }));
+      
+      // Response is wrapped in { success: true, data: { reply: string } }
+      const reply = response.data.data?.reply || response.data.reply;
+      
+      return buildSuccess({ reply });
     } catch (error) {
       return buildFailure(error);
     }

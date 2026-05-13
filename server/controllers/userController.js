@@ -205,12 +205,65 @@ exports.getStats = async (req, res) => {
     res.status(200).json({
       streak: user.streak,
       totalXP: user.totalXP,
+      rpgStats: user.rpgStats,
+      character: user.character,
+      achievements: user.achievements,
       tasksToday: { completed: completedToday, total: todayTasks.length },
       weekCompletion: { rate: weekCompletionRate, completed: weekCompleted, total: weekTasks.length },
       pomodorosToday,
       heatmapData,
       weeklyChart,
       categoryBreakdown
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// ---- POST /api/user/select-class ----
+exports.selectClass = async (req, res) => {
+  try {
+    const { charClass } = req.body;
+    if (!['Warrior', 'Scholar', 'Cyborg', 'Monk'].includes(charClass)) {
+      return res.status(400).json({ message: 'Invalid class selection' });
+    }
+
+    const user = await getOrCreateUser();
+    user.character.class = charClass;
+    
+    // Set default avatar based on class
+    const avatars = {
+      'Warrior': '⚔️',
+      'Scholar': '📜',
+      'Cyborg': '🤖',
+      'Monk': '🧘'
+    };
+    user.character.avatar = avatars[charClass];
+    
+    // Initial stat boost based on class
+    if (user.rpgStats.level === 1 && user.totalXP === 0) {
+      if (charClass === 'Warrior') { user.rpgStats.strength = 15; user.rpgStats.maxHP = 120; user.rpgStats.hp = 120; }
+      if (charClass === 'Scholar') { user.rpgStats.intelligence = 15; }
+      if (charClass === 'Monk') { user.rpgStats.wisdom = 15; }
+      if (charClass === 'Cyborg') { user.rpgStats.intelligence = 12; user.rpgStats.strength = 12; }
+    }
+
+    await user.save();
+    res.status(200).json(user);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// ---- GET /api/user/rpg-status ----
+exports.getRPGStatus = async (req, res) => {
+  try {
+    const user = await getOrCreateUser();
+    res.status(200).json({
+      character: user.character,
+      rpgStats: user.rpgStats,
+      achievements: user.achievements,
+      totalXP: user.totalXP
     });
   } catch (err) {
     res.status(500).json({ message: err.message });

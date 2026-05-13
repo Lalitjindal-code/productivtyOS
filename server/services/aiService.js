@@ -316,6 +316,37 @@ const suggestTaskSchedule = async (tasks, dnaData, currentTime) => {
   }
 };
 
+/**
+ * Generates a shame report for missed tasks this week using AI.
+ * @param {Array} failedTasks
+ * @param {number} totalCompleted
+ * @param {number} streak
+ * @returns {Promise<{report: string}>}
+ */
+const generateShameReport = async (failedTasks, totalCompleted, streak) => {
+  if (!Array.isArray(failedTasks) || !Number.isFinite(Number(totalCompleted))) {
+    return FALLBACK_CHAT;
+  }
+
+  const prompt = [
+    `Failed tasks this week: ${failedTasks.length}`,
+    `Task titles: ${failedTasks.map((t) => t.title).join(', ') || 'None'}`,
+    `Completed this week: ${totalCompleted}`,
+    `Current streak: ${streak}`,
+    `Generate a shame report that's motivational but honest about the failures.`,
+  ].join('\n');
+
+  try {
+    const response = await callAI(prompt, prompts.PROMPT_ROAST || 'You are a motivational coach. Generate a shame report.', { maxTokens: 300 });
+    return {
+      report: typeof response.text === 'string' && response.text.trim() ? response.text.trim() : FALLBACK_CHAT.reply,
+    };
+  } catch (error) {
+    console.error('[AI Service] generateShameReport failed:', error.message);
+    return FALLBACK_CHAT;
+  }
+};
+
 module.exports = {
   generateTaskQuiz,
   generateRoast,
@@ -324,4 +355,5 @@ module.exports = {
   generateJournalSummary,
   chatWithBrain,
   suggestTaskSchedule,
+  generateShameReport,
 };

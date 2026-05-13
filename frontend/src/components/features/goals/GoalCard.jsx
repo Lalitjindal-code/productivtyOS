@@ -50,6 +50,31 @@ export const GoalCard = ({ goal }) => {
         </p>
       </div>
 
+      {/* Boss Battle Section */}
+      {!isCompleted && goal.boss && (
+        <div className="mb-6 p-3 rounded-xl bg-neutral-900/50 border border-white/5 relative overflow-hidden group/boss">
+          <div className="absolute top-0 right-0 p-4 opacity-10 scale-150 rotate-12 group-hover/boss:scale-175 group-hover/boss:rotate-0 transition-transform">
+            <span className="text-4xl">{goal.boss.avatar}</span>
+          </div>
+          
+          <div className="flex items-center gap-3 mb-2 relative z-10">
+            <span className="text-2xl animate-bounce-slow">{goal.boss.avatar}</span>
+            <div className="flex-1">
+              <div className="flex justify-between items-end mb-1">
+                <h4 className="text-xs font-display font-bold text-neutral-400 uppercase tracking-wider">Boss: {goal.boss.name}</h4>
+                <span className="text-[10px] font-mono text-red-400 font-bold">{goal.boss.hp}/{goal.boss.maxHP} HP</span>
+              </div>
+              <div className="h-1.5 w-full bg-neutral-800 rounded-full overflow-hidden border border-white/5">
+                <div 
+                  className="h-full bg-gradient-to-r from-red-600 to-red-400 transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(220,38,38,0.5)]"
+                  style={{ width: `${(goal.boss.hp / goal.boss.maxHP) * 100}%` }}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2 text-xs font-mono text-neutral-400">
           <Calendar size={12} />

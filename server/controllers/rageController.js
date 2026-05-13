@@ -23,12 +23,8 @@ exports.generateRoast = async (req, res) => {
       failedAt: { $gte: weekStart }
     });
 
-    const roast = await aiService.generateRoast({
-      taskTitle: task.title,
-      taskCategory: task.category,
-      rageMode,
-      failuresThisWeek
-    });
+    const roastData = await aiService.generateRoast(task, failuresThisWeek, rageMode, []);
+    const roast = roastData.roast;
 
     // Save roast to task
     task.aiRoast = roast;
@@ -103,11 +99,8 @@ exports.generateShameReport = async (req, res) => {
 
     const user = await User.findOne({ userId: TEMP_USER_ID });
 
-    const report = await aiService.generateShameReport({
-      failedTasks,
-      totalCompleted: completedCount,
-      streak: user?.streak?.current || 0
-    });
+    const reportData = await aiService.generateShameReport(failedTasks, completedCount, user?.streak?.current || 0);
+    const report = reportData.report;
 
     res.status(200).json({ report });
   } catch (err) {

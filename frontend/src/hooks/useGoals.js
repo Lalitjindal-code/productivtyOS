@@ -32,8 +32,23 @@ export const useGoals = () => {
 
   const toggleMilestoneMutation = useMutation({
     mutationFn: ({ goalId, milestoneId }) => goalService.toggleMilestone(goalId, milestoneId),
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['goals'] });
+      queryClient.invalidateQueries({ queryKey: ['rpg-status'] });
+      
+      if (data.bossRewards?.bossDefeated) {
+        import('react-hot-toast').then(({ default: toast }) => {
+          toast.success(`VICTORY! ${data.bossRewards.xpGained} XP GAINED!`, {
+            icon: '⚔️',
+            duration: 5000,
+            style: {
+              background: '#991b1b',
+              color: '#fff',
+              fontWeight: 'bold'
+            }
+          });
+        });
+      }
     },
   });
 

@@ -156,10 +156,10 @@ export const Dashboard = () => {
       bg: 'bg-orange-400/10',
     },
     {
-      title: 'Total XP',
-      value: isLoading ? '—' : (stats?.totalXP ?? 0),
+      title: 'RPG Level',
+      value: isLoading ? '—' : `LVL ${stats?.rpgStats?.level ?? 1}`,
       icon: <Zap size={20} />,
-      sub: 'Lifetime earned',
+      sub: `${stats?.character?.class ?? 'None'} Class`,
       color: 'text-yellow-400',
       bg: 'bg-yellow-400/10',
     },
