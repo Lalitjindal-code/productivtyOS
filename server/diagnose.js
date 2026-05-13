@@ -4,12 +4,13 @@ async function diagnose() {
   const endpoints = [
     '/api/user/profile',
     '/api/user/test-rpg',
-    '/api/user/rpg-status'
+    '/api/user/rpg-status',
+    '/api/gym/workouts'
   ];
 
   for (const endpoint of endpoints) {
     try {
-      const response = await axios.get(`http://localhost:5000${endpoint}`);
+      const response = await axios.get(`http://localhost:5001${endpoint}`);
       console.log(`[${endpoint}] Status:`, response.status, 'Data:', response.data);
     } catch (error) {
       if (error.response) {

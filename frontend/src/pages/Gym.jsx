@@ -9,15 +9,17 @@ import {
   Radar, RadarChart, PolarGrid, PolarAngleAxis, 
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip 
 } from 'recharts';
-import { getWorkouts, getGymPlan } from '../services/gymService';
+import { getWorkouts, getGymPlan, getExercises } from '../services/gymService';
 import { WorkoutLogger } from '../components/features/gym/WorkoutLogger';
 import { GymPlanEditor } from '../components/features/gym/GymPlanEditor';
+import { ExerciseStatsModal } from '../components/features/gym/ExerciseStatsModal';
 import { format } from 'date-fns';
 
 export const Gym = () => {
   const queryClient = useQueryClient();
   const [isLoggerOpen, setIsLoggerOpen] = useState(false);
   const [isPlanOpen, setIsPlanOpen] = useState(false);
+  const [selectedExercise, setSelectedExercise] = useState(null);
 
   const { data: workouts, isLoading } = useQuery({
     queryKey: ['workouts'],
@@ -27,6 +29,11 @@ export const Gym = () => {
   const { data: plan } = useQuery({
     queryKey: ['gymPlan'],
     queryFn: getGymPlan
+  });
+
+  const { data: allExercises } = useQuery({
+    queryKey: ['exercises'],
+    queryFn: getExercises
   });
 
   const today = format(new Date(), 'EEEE');
@@ -199,7 +206,7 @@ export const Gym = () => {
                           {workout.name}
                         </div>
                         <div className="text-xs text-neutral-500 font-medium">
-                          {format(new Date(workout.date), 'MMMM do')} • {workout.exercises?.length || 0} Exercises
+                          {workout.date ? format(new Date(workout.date), 'MMMM do') : 'Unknown Date'} | {workout.exercises?.length || 0} Exercises
                         </div>
                       </div>
                     </div>
@@ -238,6 +245,44 @@ export const Gym = () => {
           ))}
         </div>
 
+        {/* Exercise Library / PR Board */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="bg-neutral-900/50 border border-white/5 rounded-3xl p-8 backdrop-blur-xl"
+        >
+          <div className="flex items-center justify-between mb-8">
+            <h3 className="text-sm font-black text-neutral-400 uppercase tracking-widest flex items-center gap-2">
+              <Sparkles size={16} className="text-lime-500" /> Exercise Library
+            </h3>
+            <div className="flex gap-2">
+              {['All', 'Chest', 'Back', 'Legs', 'Shoulders'].map(cat => (
+                <button key={cat} className="px-3 py-1 bg-white/5 hover:bg-lime-500/10 hover:text-lime-400 rounded-lg text-[10px] font-bold text-neutral-500 transition-all">
+                  {cat}
+                </button>
+              ))}
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            {allExercises?.slice(0, 12).map(ex => (
+              <button 
+                key={ex._id}
+                onClick={() => setSelectedExercise(ex)}
+                className="group p-4 bg-white/5 border border-white/5 rounded-2xl hover:border-lime-500/30 hover:bg-lime-500/5 transition-all text-left"
+              >
+                <div className="text-xs font-bold text-white group-hover:text-lime-400 transition-colors mb-1 truncate">
+                  {ex.name}
+                </div>
+                <div className="text-[10px] font-medium text-neutral-600 uppercase tracking-tighter">
+                  {ex.category}
+                </div>
+              </button>
+            ))}
+          </div>
+        </motion.div>
+
       </div>
 
       <WorkoutLogger 
@@ -249,6 +294,12 @@ export const Gym = () => {
       <GymPlanEditor 
         isOpen={isPlanOpen}
         onClose={() => setIsPlanOpen(false)}
+      />
+
+      <ExerciseStatsModal 
+        isOpen={!!selectedExercise}
+        onClose={() => setSelectedExercise(null)}
+        exercise={selectedExercise}
       />
     </div>
   );
