@@ -27,6 +27,15 @@ const userSchema = new mongoose.Schema({
     appearance: {
       theme: { type: String, default: 'dark' },
       sidebarCollapsed: { type: Boolean, default: false }
+    },
+    gymPlan: {
+      Monday: { type: String, default: 'Rest' },
+      Tuesday: { type: String, default: 'Rest' },
+      Wednesday: { type: String, default: 'Rest' },
+      Thursday: { type: String, default: 'Rest' },
+      Friday: { type: String, default: 'Rest' },
+      Saturday: { type: String, default: 'Rest' },
+      Sunday: { type: String, default: 'Rest' }
     }
   },
   aiUsage: {
