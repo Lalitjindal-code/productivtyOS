@@ -8,5 +8,6 @@ router.patch('/insights/:insightId/flag', memoryController.flagInsight);
 router.post('/notes', memoryController.addNote);
 router.delete('/notes/:noteId', memoryController.deleteNote);
 router.post('/chat', memoryController.chat);
+router.post('/dna/generate', memoryController.generateDNA);
 
 module.exports = router;

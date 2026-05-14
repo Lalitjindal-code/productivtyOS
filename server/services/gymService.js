@@ -48,7 +48,13 @@ exports.completeWorkout = async (userId, workoutData) => {
     ...workoutData,
     userId,
     totalVolume: volume,
-    xpEarned: Math.floor(volume / 100) + 50 + (prsFound.length * 20) // PR bonus
+    xpEarned: Math.floor(volume / 100) + 50 + (prsFound.length * 20), // PR bonus
+    prsDetected: prsFound.map(pr => ({
+      name: pr.type,
+      exerciseName: pr.name,
+      value: pr.value || 0,
+      type: pr.type.includes('Weight') ? 'weight' : 'reps'
+    }))
   });
 
   await workout.save();

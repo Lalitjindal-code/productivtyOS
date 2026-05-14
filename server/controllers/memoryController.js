@@ -4,6 +4,7 @@ const Goal = require('../models/Goal');
 const User = require('../models/User');
 const PomodoroSession = require('../models/PomodoroSession');
 const aiService = require('../services/aiService');
+const dnaService = require('../services/dnaService');
 
 const TEMP_USER_ID = 'user_mvp_1';
 
@@ -45,6 +46,16 @@ exports.generateInsights = async (req, res) => {
     const goals = await Goal.find({ userId: TEMP_USER_ID, status: 'active' });
     const user = await User.findOne({ userId: TEMP_USER_ID });
 
+    // Fetch mood correlation data
+    const Journal = require('../models/Journal');
+    const journalEntries = await Journal.find({
+      userId: TEMP_USER_ID,
+      type: 'daily',
+      date: { $gte: weekStart }
+    }).sort({ date: 1 });
+
+    const moodData = journalEntries.map(e => ({ date: e.date, score: e.mood.score, label: e.mood.label }));
+
     const weeklyStats = {
       totalTasks: weekTasks.length,
       completed: completedTasks.length,
@@ -52,6 +63,7 @@ exports.generateInsights = async (req, res) => {
       completionRate: weekTasks.length > 0 ? Math.round((completedTasks.length / weekTasks.length) * 100) : 0,
       pomodoros: pomodorosCount,
       streak: user?.streak?.current || 0,
+      moodData,
       topCategory: Object.entries(
         completedTasks.reduce((acc, t) => { acc[t.category] = (acc[t.category] || 0) + 1; return acc; }, {})
       ).sort((a, b) => b[1] - a[1])[0]?.[0] || 'none'
@@ -64,14 +76,17 @@ exports.generateInsights = async (req, res) => {
     });
 
     if (insightData?.insights?.length > 0) {
-      // Format insights for storage
-      const insightStrings = insightData.insights.map(i => 
-        typeof i === 'string' ? i : (i?.description || i?.title || 'Insight')
-      );
+      // Map insights to the new structured format
+      const structuredInsights = insightData.insights.map(i => ({
+        title: i.title || 'Insight',
+        description: i.description || (typeof i === 'string' ? i : ''),
+        type: i.type || 'pattern',
+        generatedAt: new Date()
+      }));
       
       memory.weeklyInsights.unshift({
         weekOf: new Date(),
-        insights: insightStrings,
+        insights: structuredInsights,
         generatedAt: new Date()
       });
       
@@ -164,6 +179,38 @@ exports.chat = async (req, res) => {
 
     res.status(200).json({ reply });
   } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// POST /api/memory/dna/generate — Generate long-term productivity DNA
+exports.generateDNA = async (req, res) => {
+  try {
+    const memory = await getOrCreateMemory();
+    
+    // Aggregate 90-day data
+    const aggregation = await dnaService.aggregateNinetyDayData(TEMP_USER_ID);
+    
+    // Call AI to generate narrative and formula
+    const dnaReport = await aiService.generateDNAReport(aggregation.stats);
+    
+    // Save to memory
+    memory.productivityDNA = {
+      generatedAt: new Date(),
+      peakHours: aggregation.stats.peakHours,
+      bestDay: aggregation.stats.bestDay,
+      worstDay: aggregation.stats.worstDay,
+      kryptonite: aggregation.stats.kryptonite,
+      sweetSpotDuration: aggregation.stats.sweetSpotDuration,
+      formula: dnaReport.formula,
+      narrative: dnaReport.narrative
+    };
+    
+    await memory.save();
+    
+    res.status(200).json(memory.productivityDNA);
+  } catch (err) {
+    console.error('[MemoryController] DNA Generation Error:', err);
     res.status(500).json({ message: err.message });
   }
 };

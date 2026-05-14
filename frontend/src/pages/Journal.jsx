@@ -1,27 +1,40 @@
 import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  Plus, Search, Filter, Calendar, 
+  Sparkles, Loader2, Edit3, Trash2,
+  ChevronLeft, ChevronRight, History
+} from 'lucide-react';
 import { useJournal, useTodayEntry, useOnThisDay, useUpsertEntry, useDeleteEntry } from '../hooks/useJournal';
 import { EntryForm } from '../components/features/journal/EntryForm';
 import { EntryCard } from '../components/features/journal/EntryCard';
+import { Card } from '../components/common/Card';
+import { useNotifications } from '../contexts/NotificationContext';
 
 // ---- On This Day Banner ----
 const OnThisDayBanner = ({ memories }) => {
   if (!memories?.length) return null;
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '24px' }}>
+    <div className="flex flex-col gap-3 mb-8">
       {memories.map(({ label, entry }) => (
-        <div key={label} style={{
-          background: 'linear-gradient(135deg, rgba(234,179,8,0.08), rgba(168,85,247,0.08))',
-          border: '1px solid rgba(234,179,8,0.2)', borderRadius: '12px', padding: '14px 18px',
-          display: 'flex', alignItems: 'center', gap: '14px',
-        }}>
-          <span style={{ fontSize: '24px' }}>⏳</span>
-          <div>
-            <div style={{ fontSize: '11px', color: '#eab308', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>On This Day — {label}</div>
-            <div style={{ color: '#cbd5e1', fontSize: '13px', marginTop: '3px' }}>
-              {entry.mood?.emoji} {entry.achieved ? entry.achieved.slice(0, 120) + (entry.achieved.length > 120 ? '…' : '') : 'No achievement logged'}
+        <motion.div 
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          key={label} 
+          className="bg-gradient-to-r from-amber-500/10 to-purple-500/10 border border-amber-500/20 rounded-2xl p-4 flex items-center gap-4 group hover:border-amber-500/40 transition-all"
+        >
+          <div className="w-12 h-12 rounded-xl bg-amber-500/20 flex items-center justify-center text-2xl shadow-glow-sm group-hover:scale-110 transition-transform">
+            ⏳
+          </div>
+          <div className="flex-1">
+            <div className="text-[10px] font-black text-amber-500 uppercase tracking-widest mb-1">On This Day — {label}</div>
+            <div className="text-sm text-neutral-300 line-clamp-1">
+              <span className="mr-2">{entry.mood?.emoji}</span>
+              {entry.achieved || 'No specific achievement logged.'}
             </div>
           </div>
-        </div>
+          <History size={16} className="text-neutral-600 group-hover:text-amber-500 transition-colors" />
+        </motion.div>
       ))}
     </div>
   );
@@ -29,6 +42,7 @@ const OnThisDayBanner = ({ memories }) => {
 
 // ---- Main Journal Page ----
 export const Journal = () => {
+  const { addNotification } = useNotifications();
   const [showForm, setShowForm] = useState(false);
   const [editEntry, setEditEntry] = useState(null);
   const [search, setSearch] = useState('');
@@ -42,131 +56,207 @@ export const Journal = () => {
   const deleteEntry = useDeleteEntry();
 
   const handleSave = async (payload) => {
-    await upsert.mutateAsync(payload);
-    setShowForm(false);
-    setEditEntry(null);
+    try {
+      const result = await upsert.mutateAsync(payload);
+      setShowForm(false);
+      setEditEntry(null);
+      
+      addNotification({
+        title: 'Reflection Saved',
+        message: `Gained 10 XP for journaling.`,
+        type: 'success'
+      });
+
+      if (result.leveledUp) {
+        addNotification({
+          title: 'Level Up!',
+          message: 'Your self-reflection has increased your level.',
+          type: 'level_up'
+        });
+      }
+    } catch (err) {
+      addNotification({
+        title: 'Error Saving',
+        message: err.message,
+        type: 'error'
+      });
+    }
   };
 
   const handleDelete = (id) => {
-    if (window.confirm('Delete this entry?')) deleteEntry.mutate(id);
+    if (window.confirm('Are you sure you want to purge this memory?')) {
+      deleteEntry.mutate(id);
+      addNotification({
+        title: 'Entry Deleted',
+        message: 'The memory has been removed.',
+        type: 'error'
+      });
+    }
   };
 
   const entries = journalData?.entries || [];
 
   return (
-    <div style={{ padding: '24px 32px', maxWidth: '820px', margin: '0 auto' }}>
+    <div className="max-w-4xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 animate-in fade-in duration-500">
+      
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '28px' }}>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 mb-10">
         <div>
-          <h1 style={{ fontSize: '24px', fontWeight: 800, color: '#e2e8f0', margin: 0 }}>📔 Daily Journal</h1>
-          <p style={{ color: '#64748b', fontSize: '13px', margin: '4px 0 0' }}>Track your mood, wins, and reflections</p>
+          <h1 className="font-display font-black text-4xl text-neutral-50 tracking-tight">
+            Daily Journal
+          </h1>
+          <p className="font-body text-neutral-400 mt-2">
+            Capture your mood, wins, and strategic reflections.
+          </p>
         </div>
+        
         <button
           onClick={() => { setEditEntry(null); setShowForm(s => !s); }}
-          style={{
-            padding: '10px 20px', borderRadius: '10px', border: 'none', cursor: 'pointer',
-            background: showForm ? 'rgba(255,255,255,0.06)' : 'linear-gradient(135deg, #7c3aed, #a855f7)',
-            color: '#fff', fontWeight: 700, fontSize: '14px',
-          }}
+          className={`flex items-center gap-2 px-6 py-3 rounded-xl font-body font-bold text-sm transition-all shadow-glow-sm ${
+            showForm 
+              ? 'bg-white/5 text-neutral-400 border border-white/10 hover:bg-white/10' 
+              : 'bg-gradient-to-r from-primary-500 to-primary-600 text-white hover:scale-105 active:scale-95'
+          }`}
         >
-          {showForm ? '✕ Cancel' : todayEntry ? '✏️ Edit Today' : '+ New Entry'}
+          {showForm ? 'Cancel' : todayEntry ? <><Edit3 size={16} /> Edit Today</> : <><Plus size={16} /> New Entry</>}
         </button>
       </div>
 
-      {/* On This Day */}
+      {/* On This Day memories */}
       <OnThisDayBanner memories={memories} />
 
       {/* Today's Entry Form */}
-      {(showForm || editEntry) && (
-        <div style={{
-          background: 'rgba(124,58,237,0.06)', border: '1px solid rgba(124,58,237,0.2)',
-          borderRadius: '16px', padding: '24px', marginBottom: '28px',
-        }}>
-          <h2 style={{ fontSize: '16px', fontWeight: 700, color: '#a78bfa', marginBottom: '20px' }}>
-            {editEntry ? '✏️ Edit Entry' : "✍️ Today's Reflection"}
-          </h2>
-          <EntryForm
-            existing={editEntry || todayEntry}
-            onSave={handleSave}
-            onCancel={() => { setShowForm(false); setEditEntry(null); }}
+      <AnimatePresence>
+        {(showForm || editEntry) && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="mb-10"
+          >
+            <Card className="p-8 border-primary-500/20 bg-primary-500/5 overflow-visible">
+              <h2 className="font-display font-bold text-xl text-primary-400 mb-6 flex items-center gap-2">
+                <Edit3 size={20} />
+                {editEntry ? 'Edit Entry' : "Today's Strategic Reflection"}
+              </h2>
+              <EntryForm
+                existing={editEntry || todayEntry}
+                onSave={handleSave}
+                onCancel={() => { setShowForm(false); setEditEntry(null); }}
+              />
+            </Card>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Today's shortcut (when form is closed) */}
+      {todayEntry && !showForm && !editEntry && (
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="bg-green-500/5 border border-green-500/20 rounded-2xl p-4 mb-10 flex items-center gap-4"
+        >
+          <div className="text-3xl">{todayEntry.mood?.emoji}</div>
+          <div className="flex-1">
+            <div className="text-[10px] font-black text-green-500 uppercase tracking-widest">Entry Captured</div>
+            <div className="text-sm text-neutral-400">
+              Feeling <span className="text-neutral-100 font-bold">{todayEntry.mood?.label}</span> today.
+            </div>
+          </div>
+          <button 
+            onClick={() => setShowForm(true)}
+            className="text-xs font-mono font-bold text-primary-400 hover:text-primary-300 transition-colors uppercase"
+          >
+            Update
+          </button>
+        </motion.div>
+      )}
+
+      {/* Filters & Search */}
+      <div className="flex flex-col sm:flex-row gap-4 mb-8">
+        <div className="flex-1 relative group">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-600 group-focus-within:text-primary-400 transition-colors" size={18} />
+          <input
+            value={search}
+            onChange={e => { setSearch(e.target.value); setPage(1); }}
+            placeholder="Search your memories..."
+            className="w-full bg-surface border border-white/10 rounded-xl py-3 pl-12 pr-4 text-sm font-body text-neutral-100 placeholder:text-neutral-600 focus:outline-none focus:border-primary-400/50 transition-all"
           />
         </div>
-      )}
-
-      {/* Today's existing entry summary (when form is closed) */}
-      {todayEntry && !showForm && !editEntry && (
-        <div style={{
-          background: 'linear-gradient(135deg, rgba(34,197,94,0.06), rgba(124,58,237,0.06))',
-          border: '1px solid rgba(34,197,94,0.2)', borderRadius: '14px', padding: '16px 20px', marginBottom: '24px',
-          display: 'flex', alignItems: 'center', gap: '14px',
-        }}>
-          <span style={{ fontSize: '28px' }}>{todayEntry.mood?.emoji}</span>
-          <div>
-            <div style={{ fontSize: '12px', color: '#22c55e', fontWeight: 700 }}>TODAY'S ENTRY SAVED</div>
-            <div style={{ color: '#94a3b8', fontSize: '13px' }}>Feeling {todayEntry.mood?.label} · {todayEntry.tags?.join(', ') || 'no tags'}</div>
-          </div>
+        <div className="relative">
+          <Filter className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-600" size={16} />
+          <select
+            value={filterMood}
+            onChange={e => { setFilterMood(e.target.value); setPage(1); }}
+            className="appearance-none bg-surface border border-white/10 rounded-xl py-3 pl-12 pr-10 text-sm font-body text-neutral-100 focus:outline-none focus:border-primary-400/50 transition-all cursor-pointer"
+          >
+            <option value=''>All Moods</option>
+            <option value='1'>😭 Awful</option>
+            <option value='2'>😕 Meh</option>
+            <option value='3'>😐 Neutral</option>
+            <option value='4'>😊 Good</option>
+            <option value='5'>🔥 Amazing</option>
+          </select>
         </div>
-      )}
-
-      {/* Filters */}
-      <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap' }}>
-        <input
-          value={search}
-          onChange={e => { setSearch(e.target.value); setPage(1); }}
-          placeholder="🔍 Search entries..."
-          style={{
-            flex: 1, minWidth: '200px', background: 'rgba(255,255,255,0.04)',
-            border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px',
-            padding: '9px 14px', color: '#e2e8f0', fontSize: '13px', outline: 'none',
-          }}
-        />
-        <select
-          value={filterMood}
-          onChange={e => { setFilterMood(e.target.value); setPage(1); }}
-          style={{
-            background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
-            borderRadius: '10px', padding: '9px 14px', color: '#e2e8f0', fontSize: '13px', outline: 'none',
-          }}
-        >
-          <option value=''>All Moods</option>
-          <option value='1'>😭 Awful</option>
-          <option value='2'>😕 Meh</option>
-          <option value='3'>😐 Neutral</option>
-          <option value='4'>😊 Good</option>
-          <option value='5'>🔥 Amazing</option>
-        </select>
       </div>
 
       {/* Entry List */}
-      {isLoading ? (
-        <div style={{ textAlign: 'center', padding: '60px', color: '#555' }}>Loading entries…</div>
-      ) : entries.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '60px', color: '#555' }}>
-          <div style={{ fontSize: '48px', marginBottom: '12px' }}>📔</div>
-          <div style={{ fontWeight: 600, color: '#777' }}>No entries yet</div>
-          <div style={{ fontSize: '13px', color: '#555', marginTop: '6px' }}>Start writing your first daily reflection above.</div>
-        </div>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          {entries.map(e => (
-            <EntryCard
-              key={e._id}
-              entry={e}
-              onDelete={handleDelete}
-              onEdit={(entry) => { setEditEntry(entry); setShowForm(false); }}
-            />
-          ))}
-        </div>
-      )}
+      <div className="space-y-6">
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center py-20 gap-4">
+            <Loader2 className="animate-spin text-primary-400" size={32} />
+            <p className="text-neutral-500 font-mono text-xs uppercase tracking-widest">Loading archives...</p>
+          </div>
+        ) : entries.length === 0 ? (
+          <Card className="p-20 text-center flex flex-col items-center justify-center border-dashed">
+            <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center text-4xl mb-6 grayscale opacity-50">
+              📔
+            </div>
+            <h3 className="font-display font-bold text-xl text-neutral-200 mb-2">The Archive is Empty</h3>
+            <p className="font-body text-neutral-500 max-w-sm mx-auto">
+              You haven't recorded any strategic reflections yet. Start capturing your journey today.
+            </p>
+          </Card>
+        ) : (
+          <div className="flex flex-col gap-4">
+            {entries.map((entry, idx) => (
+              <motion.div
+                key={entry._id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: idx * 0.05 }}
+              >
+                <EntryCard
+                  entry={entry}
+                  onDelete={handleDelete}
+                  onEdit={(e) => { setEditEntry(e); setShowForm(false); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                />
+              </motion.div>
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* Pagination */}
       {journalData?.pages > 1 && (
-        <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', marginTop: '24px' }}>
-          <button disabled={page <= 1} onClick={() => setPage(p => p - 1)}
-            style={{ padding: '8px 18px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: page <= 1 ? '#444' : '#a78bfa', cursor: page <= 1 ? 'not-allowed' : 'pointer' }}>← Prev</button>
-          <span style={{ padding: '8px 12px', color: '#888', fontSize: '13px' }}>Page {page} / {journalData.pages}</span>
-          <button disabled={page >= journalData.pages} onClick={() => setPage(p => p + 1)}
-            style={{ padding: '8px 18px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: page >= journalData.pages ? '#444' : '#a78bfa', cursor: page >= journalData.pages ? 'not-allowed' : 'pointer' }}>Next →</button>
+        <div className="flex items-center justify-center gap-6 mt-12 pt-8 border-t border-white/5">
+          <button 
+            disabled={page <= 1} 
+            onClick={() => setPage(p => p - 1)}
+            className="p-2 rounded-lg border border-white/10 text-neutral-400 hover:text-primary-400 hover:border-primary-400/30 disabled:opacity-20 disabled:hover:text-neutral-400 transition-all"
+          >
+            <ChevronLeft size={20} />
+          </button>
+          <span className="font-mono text-xs font-bold text-neutral-500 uppercase tracking-widest">
+            Page {page} of {journalData.pages}
+          </span>
+          <button 
+            disabled={page >= journalData.pages} 
+            onClick={() => setPage(p => p + 1)}
+            className="p-2 rounded-lg border border-white/10 text-neutral-400 hover:text-primary-400 hover:border-primary-400/30 disabled:opacity-20 disabled:hover:text-neutral-400 transition-all"
+          >
+            <ChevronRight size={20} />
+          </button>
         </div>
       )}
     </div>

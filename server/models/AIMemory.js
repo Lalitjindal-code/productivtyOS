@@ -13,7 +13,12 @@ const memoryItemSchema = new mongoose.Schema({
 
 const weeklyInsightSchema = new mongoose.Schema({
   weekOf: { type: Date, required: true },
-  insights: [{ type: String }],
+  insights: [{
+    title: { type: String },
+    description: { type: String },
+    type: { type: String, enum: ['positive', 'warning', 'tip', 'pattern'] },
+    generatedAt: { type: Date, default: Date.now }
+  }],
   generatedAt: { type: Date, default: Date.now }
 });
 
@@ -31,7 +36,8 @@ const aiMemorySchema = new mongoose.Schema({
     worstDay: { type: String },
     kryptonite: { type: String },
     sweetSpotDuration: { type: Number },
-    formula: { type: String }
+    formula: { type: String },
+    narrative: { type: String }
   }
 }, { timestamps: true });
 

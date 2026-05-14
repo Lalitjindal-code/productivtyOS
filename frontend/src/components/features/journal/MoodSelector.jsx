@@ -1,36 +1,38 @@
 import React from 'react';
+import { motion } from 'framer-motion';
 
 const MOODS = [
-  { score: 1, emoji: '😭', label: 'Awful' },
-  { score: 2, emoji: '😕', label: 'Meh' },
-  { score: 3, emoji: '😐', label: 'Neutral' },
-  { score: 4, emoji: '😊', label: 'Good' },
-  { score: 5, emoji: '🔥', label: 'Amazing' },
+  { score: 1, emoji: '😭', label: 'Awful', color: 'text-red-400', bg: 'bg-red-400/20', border: 'border-red-400' },
+  { score: 2, emoji: '😕', label: 'Meh', color: 'text-orange-400', bg: 'bg-orange-400/20', border: 'border-orange-400' },
+  { score: 3, emoji: '😐', label: 'Neutral', color: 'text-neutral-400', bg: 'bg-neutral-400/20', border: 'border-neutral-400' },
+  { score: 4, emoji: '😊', label: 'Good', color: 'text-primary-400', bg: 'bg-primary-400/20', border: 'border-primary-400' },
+  { score: 5, emoji: '🔥', label: 'Amazing', color: 'text-plasma-400', bg: 'bg-plasma-400/20', border: 'border-plasma-400' },
 ];
 
-const MOOD_COLORS = {
-  1: '#ef4444', 2: '#f97316', 3: '#eab308', 4: '#22c55e', 5: '#a855f7'
-};
-
 export const MoodSelector = ({ value, onChange }) => (
-  <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
+  <div className="flex gap-4 justify-between flex-wrap">
     {MOODS.map(m => (
-      <button
+      <motion.button
+        type="button"
         key={m.score}
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
         onClick={() => onChange(m.score)}
-        style={{
-          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px',
-          padding: '12px 16px', borderRadius: '12px', border: 'none', cursor: 'pointer',
-          background: value === m.score ? `${MOOD_COLORS[m.score]}22` : 'rgba(255,255,255,0.04)',
-          outline: value === m.score ? `2px solid ${MOOD_COLORS[m.score]}` : '2px solid transparent',
-          transition: 'all 0.2s', transform: value === m.score ? 'scale(1.12)' : 'scale(1)',
-        }}
+        className={`flex flex-col items-center gap-2 p-4 rounded-2xl transition-all flex-1 min-w-[80px] border-2 ${
+          value === m.score 
+            ? `${m.bg} ${m.border} shadow-glow-sm` 
+            : 'bg-white/5 border-transparent hover:bg-white/10'
+        }`}
       >
-        <span style={{ fontSize: '28px', lineHeight: 1 }}>{m.emoji}</span>
-        <span style={{ fontSize: '11px', color: value === m.score ? MOOD_COLORS[m.score] : '#888', fontWeight: 600 }}>{m.label}</span>
-      </button>
+        <span className="text-3xl leading-none">{m.emoji}</span>
+        <span className={`text-[10px] font-black uppercase tracking-tighter ${
+          value === m.score ? m.color : 'text-neutral-600'
+        }`}>
+          {m.label}
+        </span>
+      </motion.button>
     ))}
   </div>
 );
 
-export { MOODS, MOOD_COLORS };
+export { MOODS };

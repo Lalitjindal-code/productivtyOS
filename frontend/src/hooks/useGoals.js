@@ -1,8 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { goalService } from '../services/goalService';
+import { useNotifications } from '../contexts/NotificationContext';
 
 export const useGoals = () => {
   const queryClient = useQueryClient();
+  const { addNotification } = useNotifications();
 
   const query = useQuery({
     queryKey: ['goals'],
@@ -13,6 +15,11 @@ export const useGoals = () => {
     mutationFn: goalService.createGoal,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['goals'] });
+      addNotification({
+        title: 'Strategy Updated',
+        message: 'New high-level objective established.',
+        type: 'success'
+      });
     },
   });
 
@@ -27,6 +34,11 @@ export const useGoals = () => {
     mutationFn: goalService.deleteGoal,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['goals'] });
+      addNotification({
+        title: 'Objective Abandoned',
+        message: 'Goal has been purged from the system.',
+        type: 'error'
+      });
     },
   });
 
@@ -37,17 +49,20 @@ export const useGoals = () => {
       queryClient.invalidateQueries({ queryKey: ['rpg-status'] });
       
       if (data.bossRewards?.bossDefeated) {
-        import('react-hot-toast').then(({ default: toast }) => {
-          toast.success(`VICTORY! ${data.bossRewards.xpGained} XP GAINED!`, {
-            icon: '⚔️',
-            duration: 5000,
-            style: {
-              background: '#991b1b',
-              color: '#fff',
-              fontWeight: 'bold'
-            }
-          });
+        addNotification({
+          title: 'VICTORY!',
+          message: `Boss defeated! Gained ${data.bossRewards.xpGained} XP.`,
+          type: 'achievement',
+          autoClose: false // Keep it open for user to see
         });
+
+        if (data.bossRewards.leveledUp) {
+          addNotification({
+            title: 'LEVEL UP!',
+            message: 'Your powers have increased. Check your character sheet.',
+            type: 'level_up'
+          });
+        }
       }
     },
   });

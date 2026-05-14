@@ -1,7 +1,10 @@
 import React, { useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
-  Activity, Flame, CheckCircle, Target, Timer, Zap, TrendingUp
+  Activity, Flame, CheckCircle, Target, Timer, Zap, TrendingUp, Loader2
 } from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
+import api from '../services/api';
 import { Card } from '../components/common/Card';
 import { MainCalendar } from '../components/features/calendar/MainCalendar';
 import { useStats } from '../hooks/useStats';
@@ -107,6 +110,44 @@ const CategoryBreakdown = ({ breakdown = {} }) => {
   );
 };
 
+// ---------- Status Feed ----------
+const StatusFeed = () => {
+  const { data: feed, isLoading } = useQuery({
+    queryKey: ['activity-feed'],
+    queryFn: async () => {
+      const res = await api.get('/user/feed');
+      return res.data;
+    }
+  });
+
+  if (isLoading) return <div className="flex justify-center py-10"><Loader2 className="animate-spin text-neutral-600" size={24} /></div>;
+  if (!feed?.length) return <p className="text-neutral-500 text-sm text-center py-10 italic">No recent activity logged.</p>;
+
+  return (
+    <div className="space-y-4">
+      {feed.map((item, i) => (
+        <div key={i} className="flex gap-4 group">
+          <div className="flex flex-col items-center">
+            <div className="w-8 h-8 rounded-lg bg-surface border border-white/5 flex items-center justify-center text-base shadow-glow-sm relative z-10 group-hover:scale-110 transition-transform">
+              {item.icon}
+            </div>
+            {i < feed.length - 1 && <div className="w-0.5 flex-1 bg-white/5 my-1" />}
+          </div>
+          <div className="flex-1 pb-4">
+            <div className="flex justify-between items-baseline mb-1">
+              <h4 className="font-display font-bold text-sm text-neutral-100">{item.title}</h4>
+              <span className="text-[10px] font-mono text-neutral-600 uppercase tracking-tighter">
+                {formatDistanceToNow(new Date(item.date), { addSuffix: true })}
+              </span>
+            </div>
+            <p className="text-xs text-neutral-400 leading-relaxed line-clamp-2">{item.content}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
 // ---------- Main Dashboard ----------
 export const Dashboard = () => {
   const { stats, isLoading } = useStats();
@@ -167,61 +208,121 @@ export const Dashboard = () => {
 
   return (
     <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 animate-in fade-in duration-500 space-y-8">
-      <div>
-        <h1 className="font-display font-bold text-3xl text-neutral-50">Command Center</h1>
-        <p className="font-body text-neutral-400 mt-1">Your operational overview at a glance.</p>
+      <div className="flex justify-between items-end">
+        <div>
+          <h1 className="font-display font-bold text-3xl text-neutral-50 tracking-tight">Command Center</h1>
+          <p className="font-body text-neutral-400 mt-1">Operational overview of your productivity life.</p>
+        </div>
+        <div className="hidden sm:block text-right">
+          <div className="flex items-center gap-6">
+            {/* HP Bar */}
+            <div className="text-right">
+              <div className="text-[9px] font-black text-red-500 uppercase tracking-widest mb-1 flex justify-between">
+                <span>Vitality</span>
+                <span>{stats?.rpgStats?.hp} HP</span>
+              </div>
+              <div className="h-1.5 w-32 bg-white/5 rounded-full overflow-hidden border border-white/5">
+                <div 
+                  className="h-full bg-gradient-to-r from-red-500 to-pink-600 shadow-glow-sm" 
+                  style={{ width: `${(stats?.rpgStats?.hp / stats?.rpgStats?.maxHP) * 100}%` }} 
+                />
+              </div>
+            </div>
+            
+            {/* XP Bar */}
+            <div className="text-right">
+              <div className="text-[9px] font-black text-primary-400 uppercase tracking-widest mb-1 flex justify-between">
+                <span>Experience</span>
+                <span>LVL {stats?.rpgStats?.level}</span>
+              </div>
+              <div className="h-1.5 w-40 bg-white/5 rounded-full overflow-hidden border border-white/5">
+                <div 
+                  className="h-full bg-gradient-to-r from-primary-500 to-primary-600 shadow-glow-sm" 
+                  style={{ width: `${(stats?.rpgStats?.currentXP / stats?.rpgStats?.nextLevelXP) * 100}%` }} 
+                />
+              </div>
+            </div>
+
+            <div className="w-12 h-12 rounded-xl bg-surface border border-white/10 flex items-center justify-center text-2xl shadow-glow-sm hover:scale-110 transition-transform cursor-pointer">
+              {stats?.character?.avatar}
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Stat Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         {statCards.map((s, i) => (
-          <Card key={i} className="p-4 flex flex-col gap-3">
+          <Card key={i} className="p-4 flex flex-col gap-3 group hover:border-white/20 transition-all">
             <div className="flex justify-between items-center">
-              <span className="font-body text-xs font-medium text-neutral-500">{s.title}</span>
-              <div className={`${s.bg} ${s.color} p-1.5 rounded-lg`}>{s.icon}</div>
+              <span className="font-body text-[10px] font-black text-neutral-500 uppercase tracking-widest">{s.title}</span>
+              <div className={`${s.bg} ${s.color} p-1.5 rounded-lg group-hover:scale-110 transition-transform`}>{s.icon}</div>
             </div>
             <div>
               <div className="flex items-baseline gap-1">
-                <span className="font-display font-bold text-2xl text-neutral-50">{s.value}</span>
-                {s.unit && <span className="font-body text-xs text-neutral-500">{s.unit}</span>}
+                <span className="font-display font-bold text-2xl text-neutral-50 tracking-tight">{s.value}</span>
+                {s.unit && <span className="font-body text-xs text-neutral-600">{s.unit}</span>}
               </div>
-              <p className="font-body text-xs text-neutral-600 mt-0.5">{s.sub}</p>
+              <p className="font-body text-[10px] text-neutral-600 mt-0.5 font-medium uppercase tracking-tighter">{s.sub}</p>
             </div>
           </Card>
         ))}
       </div>
 
-      {/* Charts + Calendar */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        {/* Calendar — takes 2 cols */}
-        <div className="xl:col-span-2 space-y-6">
-          <Card className="p-5">
-            <h2 className="font-display font-semibold text-lg text-neutral-50 mb-4 flex items-center gap-2">
-              <Activity size={18} className="text-primary-400" /> Master Calendar
-            </h2>
+      {/* Charts + Status Feed */}
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+        {/* Main Content — Calendar */}
+        <div className="xl:col-span-3 space-y-6">
+          <Card className="p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="font-display font-semibold text-lg text-neutral-50 flex items-center gap-2">
+                <Activity size={18} className="text-primary-400" /> Operational Calendar
+              </h2>
+              <div className="flex gap-2">
+                <div className="w-2 h-2 rounded-full bg-green-500/50" />
+                <div className="w-2 h-2 rounded-full bg-primary-500/50" />
+                <div className="w-2 h-2 rounded-full bg-plasma-500/50" />
+              </div>
+            </div>
             <MainCalendar />
           </Card>
         </div>
 
-        {/* Right column */}
+        {/* Right column — Status Feed + Analytics */}
         <div className="space-y-6">
-          <Card className="p-5">
-            <h2 className="font-display font-semibold text-base text-neutral-50 mb-4">Weekly Completions</h2>
-            <WeeklyBarChart weeklyChart={stats?.weeklyChart} />
+          <Card className="p-6">
+            <h2 className="font-display font-bold text-sm text-neutral-200 mb-6 uppercase tracking-widest flex items-center gap-2">
+              <Activity size={14} className="text-primary-400" /> Status Feed
+            </h2>
+            <StatusFeed />
           </Card>
 
           <Card className="p-5">
-            <h2 className="font-display font-semibold text-base text-neutral-50 mb-4">Category Breakdown</h2>
-            <CategoryBreakdown breakdown={stats?.categoryBreakdown} />
+            <h2 className="font-display font-semibold text-xs text-neutral-500 mb-4 uppercase tracking-widest">Performance Metrics</h2>
+            <div className="space-y-6">
+              <div>
+                <span className="text-[10px] font-black text-neutral-600 uppercase tracking-widest mb-3 block text-center">Weekly Completion</span>
+                <WeeklyBarChart weeklyChart={stats?.weeklyChart} />
+              </div>
+              <div className="pt-6 border-t border-white/5">
+                <span className="text-[10px] font-black text-neutral-600 uppercase tracking-widest mb-3 block text-center">Category Breakdown</span>
+                <CategoryBreakdown breakdown={stats?.categoryBreakdown} />
+              </div>
+            </div>
           </Card>
         </div>
       </div>
 
       {/* Activity Heatmap */}
-      <Card className="p-5">
-        <h2 className="font-display font-semibold text-base text-neutral-50 mb-4 flex items-center gap-2">
-          <Flame size={16} className="text-primary-400" /> Activity — Last 90 Days
-        </h2>
+      <Card className="p-6 bg-gradient-to-r from-surface to-elevated">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="font-display font-semibold text-base text-neutral-50 flex items-center gap-2">
+            <Flame size={16} className="text-primary-400" /> Strategic Momentum — 90 Day Heatmap
+          </h2>
+          <div className="flex items-center gap-4">
+            <div className="text-[10px] font-bold text-neutral-600 uppercase tracking-widest">Total Ops: {stats?.heatmapData?.reduce((s, d) => s + d.count, 0) || 0}</div>
+          </div>
+        </div>
         <ActivityHeatmap heatmapData={stats?.heatmapData} />
       </Card>
     </div>

@@ -269,3 +269,63 @@ exports.getRPGStatus = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
+// ---- GET /api/user/feed ----
+exports.getActivityFeed = async (req, res) => {
+  try {
+    const Workout = require('../models/Workout');
+    const Goal = require('../models/Goal');
+    const AIMemory = require('../models/AIMemory');
+    
+    const weekAgo = new Date();
+    weekAgo.setDate(weekAgo.getDate() - 7);
+
+    // 1. Recent Gym Sessions with PRs
+    const workouts = await Workout.find({ 
+      userId: TEMP_USER_ID, 
+      date: { $gte: weekAgo } 
+    }).sort({ date: -1 }).limit(5);
+
+    // 2. Recent Defeated Bosses
+    const bosses = await Goal.find({ 
+      userId: TEMP_USER_ID, 
+      'boss.isDefeated': true,
+      updatedAt: { $gte: weekAgo } 
+    }).sort({ updatedAt: -1 }).limit(5);
+
+    // 3. Recent AI Insights
+    const memory = await AIMemory.findOne({ userId: TEMP_USER_ID });
+    const insights = memory?.weeklyInsights?.slice(-3) || [];
+
+    // Combine into a feed
+    const feed = [
+      ...workouts.map(w => ({
+        type: 'gym',
+        date: w.date,
+        title: 'Workout Completed',
+        content: w.prsDetected?.length > 0 
+          ? `Detected ${w.prsDetected.length} PRs! (${w.prsDetected.map(p => p.exerciseName).join(', ')})`
+          : `${w.exercises.length} exercises logged. Total Volume: ${w.totalVolume}kg`,
+        icon: w.prsDetected?.length > 0 ? '🔥' : '🏋️'
+      })),
+      ...bosses.map(b => ({
+        type: 'boss',
+        date: b.updatedAt,
+        title: 'Boss Defeated!',
+        content: `You defeated ${b.boss.name} by completing "${b.title}"`,
+        icon: '⚔️'
+      })),
+      ...insights.map(i => ({
+        type: 'insight',
+        date: i.createdAt || weekAgo,
+        title: 'New AI Insight',
+        content: typeof i === 'string' ? i : i.description,
+        icon: '🧠'
+      }))
+    ].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    res.status(200).json(feed);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};

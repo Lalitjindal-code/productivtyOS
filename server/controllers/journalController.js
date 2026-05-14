@@ -107,7 +107,14 @@ exports.upsertEntry = async (req, res) => {
       { new: true, upsert: true, runValidators: true },
     );
 
-    return res.status(200).json({ entry });
+    // Award XP for journaling (10 XP per entry)
+    const rpgResult = await require('../services/rpgService').updateUserXP(TEMP_USER_ID, 10);
+
+    return res.status(200).json({ 
+      entry, 
+      xpGained: 10,
+      leveledUp: rpgResult?.leveledUp || false 
+    });
   } catch (err) {
     return res.status(400).json({ message: err.message });
   }

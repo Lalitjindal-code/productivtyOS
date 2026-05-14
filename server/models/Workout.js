@@ -20,7 +20,13 @@ const workoutSchema = new mongoose.Schema({
   exercises: [workoutExerciseSchema],
   totalVolume: { type: Number, default: 0 },
   notes: { type: String },
-  xpEarned: { type: Number, default: 0 }
+  xpEarned: { type: Number, default: 0 },
+  prsDetected: [{ 
+    name: String, 
+    type: { type: String }, // 'weight' or 'reps'
+    value: Number,
+    exerciseName: String
+  }]
 }, { timestamps: true });
 
 module.exports = mongoose.model('Workout', workoutSchema);
