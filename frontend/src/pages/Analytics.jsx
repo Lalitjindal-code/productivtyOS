@@ -2,12 +2,13 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Brain, Sparkles, ThumbsDown, ThumbsUp, Plus, Trash2,
-  Loader2, MessageSquare, Send, Lightbulb, AlertTriangle, TrendingUp, Zap, Target
+  Loader2, MessageSquare, Send, Lightbulb, AlertTriangle, TrendingUp, Zap, Target, History
 } from 'lucide-react';
 import { Card } from '../components/common/Card';
 import { format } from 'date-fns';
 import api from '../services/api';
 import { aiService } from '../services/aiService';
+import { EmptyState } from '../components/common/EmptyState';
 import { HourlyHeatmap } from '../components/features/analytics/HourlyHeatmap';
 
 const fetchMemory = async () => {

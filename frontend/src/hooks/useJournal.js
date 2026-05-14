@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 
-const API = 'http://localhost:5000/api/journal';
+const API = '/api/journal';
 
 export const useJournal = ({ page = 1, mood, tag, search } = {}) => {
   return useQuery({

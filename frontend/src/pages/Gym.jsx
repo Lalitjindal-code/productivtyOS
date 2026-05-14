@@ -14,6 +14,7 @@ import { WorkoutLogger } from '../components/features/gym/WorkoutLogger';
 import { GymPlanEditor } from '../components/features/gym/GymPlanEditor';
 import { ExerciseStatsModal } from '../components/features/gym/ExerciseStatsModal';
 import { format } from 'date-fns';
+import { EmptyState } from '../components/common/EmptyState';
 
 export const Gym = () => {
   const queryClient = useQueryClient();

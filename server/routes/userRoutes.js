@@ -6,7 +6,8 @@ router.get('/profile', userController.getProfile);
 router.put('/profile', userController.updateProfile);
 router.get('/stats', userController.getStats);
 router.get('/rpg-status', userController.getRPGStatus);
-router.get('/feed', userController.getActivityFeed);
+router.get('/test-user', (req, res) => res.json({ message: 'User route works' }));
+router.get('/activity-feed', userController.getActivityFeed);
 router.post('/select-class', userController.selectClass);
 
 module.exports = router;

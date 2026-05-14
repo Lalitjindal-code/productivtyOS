@@ -21,8 +21,8 @@ const toMidnightUTC = (dateStr) => {
 // GET /api/journal — list entries, newest first (paginated)
 exports.getEntries = async (req, res) => {
   try {
-    const { page = 1, limit = 20, mood, tag, search } = req.query;
-    const query = { userId: TEMP_USER_ID, type: 'daily' };
+    const { page = 1, limit = 20, mood, tag, search, type = 'daily' } = req.query;
+    const query = { userId: TEMP_USER_ID, type };
     if (mood) query['mood.score'] = Number(mood);
     if (tag) query.tags = tag;
     if (search) {

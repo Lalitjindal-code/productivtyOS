@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
-import { v4 as uuidv4 } from 'uuid';
 import { XPPop } from '../components/common/XPPop';
 
 const NotificationContext = createContext(null);
@@ -9,7 +8,7 @@ export const NotificationProvider = ({ children }) => {
   const [xpGain, setXpGain] = useState({ amount: 0, visible: false });
 
   const addNotification = useCallback((notification) => {
-    const id = uuidv4();
+    const id = crypto.randomUUID();
     const newNotification = {
       id,
       timestamp: new Date(),

@@ -12,8 +12,10 @@ import {
   Settings,
   Skull
 } from 'lucide-react';
+import { useStats } from '../../hooks/useStats';
 
 export const Sidebar = () => {
+  const { data: stats, isLoading } = useStats();
   const navItems = [
     { to: "/", icon: LayoutDashboard, label: "Dashboard" },
     { to: "/tasks", icon: CheckSquare, label: "Tasks" },
@@ -58,11 +60,15 @@ export const Sidebar = () => {
       <div className="p-4 border-t border-white/10">
         <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-elevated border border-white/5">
           <div className="w-8 h-8 rounded-full bg-void_purple-500/20 flex items-center justify-center text-void_purple-400 font-bold font-display">
-            L
+            {stats?.character?.avatar || '👤'}
           </div>
           <div>
-            <div className="font-body text-sm font-semibold text-neutral-100">Level 12</div>
-            <div className="font-body text-xs text-neutral-500">Warrior</div>
+            <div className="font-body text-sm font-semibold text-neutral-100">
+              {isLoading ? '...' : `Level ${stats?.rpgStats?.level ?? 1}`}
+            </div>
+            <div className="font-body text-xs text-neutral-500">
+              {isLoading ? '...' : (stats?.character?.class ?? 'No Class')}
+            </div>
           </div>
         </div>
       </div>

@@ -117,7 +117,7 @@ const StatusFeed = () => {
   const { data: feed, isLoading } = useQuery({
     queryKey: ['activity-feed'],
     queryFn: async () => {
-      const res = await api.get('/user/feed');
+      const res = await api.get('/user/activity-feed');
       return res.data;
     }
   });

@@ -20,13 +20,14 @@ app.get('/health', (req, res) => res.send('OK'));
 app.use(cors());
 app.use(helmet());
 app.use(express.json());
+app.get('/test', (req, res) => res.send('test'));
 
-app.get('/api/test-gym', (req, res) => res.json({ message: 'Gym test works' }));
+app.get('/api/user/feed', (req, res) => res.json({ message: 'Direct feed works' }));
+app.use('/api/user', userRoutes);
 app.use('/api/gym', gymRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/goals', goalRoutes);
 app.use('/api/pomodoro', pomodoroRoutes);
-app.use('/api/user', userRoutes);
 app.use('/api/rage', rageRoutes);
 app.use('/api/memory', memoryRoutes);
 app.use('/api/journal', journalRoutes);
