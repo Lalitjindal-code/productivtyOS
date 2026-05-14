@@ -1,3 +1,4 @@
+console.log('App.js is being loaded');
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
