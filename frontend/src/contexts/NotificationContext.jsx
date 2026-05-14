@@ -1,10 +1,12 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import { v4 as uuidv4 } from 'uuid';
+import { XPPop } from '../components/common/XPPop';
 
 const NotificationContext = createContext(null);
 
 export const NotificationProvider = ({ children }) => {
   const [notifications, setNotifications] = useState([]);
+  const [xpGain, setXpGain] = useState({ amount: 0, visible: false });
 
   const addNotification = useCallback((notification) => {
     const id = uuidv4();
@@ -16,14 +18,11 @@ export const NotificationProvider = ({ children }) => {
     };
     
     setNotifications(prev => [newNotification, ...prev]);
+  }, []);
 
-    // Auto-remove toast-style notifications after 5 seconds if requested
-    if (notification.autoClose !== false) {
-      setTimeout(() => {
-        // We don't remove from history, but maybe we have a separate 'toasts' state?
-        // For now, let's just keep them in the list and handle 'toast' display elsewhere.
-      }, 5000);
-    }
+  const triggerXP = useCallback((amount) => {
+    setXpGain({ amount, visible: true });
+    setTimeout(() => setXpGain(prev => ({ ...prev, visible: false })), 2000);
   }, []);
 
   const markAsRead = useCallback((id) => {
@@ -37,6 +36,7 @@ export const NotificationProvider = ({ children }) => {
   const value = {
     notifications,
     addNotification,
+    triggerXP,
     markAsRead,
     clearAll
   };
@@ -44,6 +44,7 @@ export const NotificationProvider = ({ children }) => {
   return (
     <NotificationContext.Provider value={value}>
       {children}
+      <XPPop amount={xpGain.amount} isVisible={xpGain.visible} />
     </NotificationContext.Provider>
   );
 };

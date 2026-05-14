@@ -1,14 +1,17 @@
 import React, { useState } from 'react';
 import { Check, X, Clock, Trash2, ChevronDown, ChevronUp, Plus, Target } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { Card } from '../../common/Card';
 import { Badge, PriorityBadge } from '../../common/Badge';
 import { useTasks } from '../../../hooks/useTasks';
 import { useGoals } from '../../../hooks/useGoals';
+import { useNotifications } from '../../../contexts/NotificationContext';
 import { RoastModal } from '../rage/RoastModal';
 import { format, isPast, isToday } from 'date-fns';
 import api from '../../../services/api';
 
 export const TaskCard = ({ task }) => {
+  const { triggerXP } = useNotifications();
   const { completeTask, failTask, deleteTask, addSubtask, toggleSubtask, deleteSubtask } = useTasks();
   const { goals } = useGoals();
   const [isSubtasksExpanded, setIsSubtasksExpanded] = useState(false);
@@ -67,20 +70,24 @@ export const TaskCard = ({ task }) => {
       <div className="flex flex-col gap-2 shrink-0 mt-1">
         {!isCompleted && !isFailed && (
           <>
-            <button 
+            <motion.button 
+              whileHover={{ scale: 1.2 }}
+              whileTap={{ scale: 0.8 }}
               onClick={handleComplete}
               className="w-6 h-6 rounded border border-white/20 flex items-center justify-center text-transparent hover:text-green-400 hover:border-green-400/50 hover:bg-green-400/10 transition-colors"
               title="Mark Completed"
             >
               <Check size={14} />
-            </button>
-            <button 
+            </motion.button>
+            <motion.button 
+              whileHover={{ scale: 1.2 }}
+              whileTap={{ scale: 0.8 }}
               onClick={handleFail}
               className="w-6 h-6 rounded border border-white/20 flex items-center justify-center text-transparent hover:text-red-400 hover:border-red-400/50 hover:bg-red-400/10 transition-colors"
               title="Mark Failed"
             >
               <X size={14} />
-            </button>
+            </motion.button>
           </>
         )}
         {(isCompleted || isFailed) && (

@@ -1,8 +1,9 @@
-import React from 'react';
+import { EmptyState } from '../../common/EmptyState';
 import { TaskCard } from './TaskCard';
-import { LayoutList, Loader2 } from 'lucide-react';
+import { LayoutList, Loader2, Sparkles } from 'lucide-react';
 
 export const TaskList = ({ tasks, isLoading, isError, filter = 'all', searchQuery = '', categoryFilter = 'all', priorityFilter = 'all' }) => {
+  // ... existing loading and error states ...
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-neutral-500">
@@ -20,7 +21,7 @@ export const TaskList = ({ tasks, isLoading, isError, filter = 'all', searchQuer
     );
   }
 
-  // Filter Logic
+  // ... filtering logic ...
   const filteredTasks = tasks.filter(task => {
     // 1. Tab Filter
     if (filter === 'completed' && task.status !== 'completed') return false;
@@ -52,11 +53,15 @@ export const TaskList = ({ tasks, isLoading, isError, filter = 'all', searchQuer
 
   if (filteredTasks.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-neutral-500 bg-surface/50 border border-white/5 rounded-2xl border-dashed">
-        <LayoutList size={48} className="mb-4 opacity-20" />
-        <p className="font-body font-medium text-neutral-400">No tasks found in this sector.</p>
-        <p className="font-body text-sm mt-1">Initiate a new directive to begin.</p>
-      </div>
+      <EmptyState
+        icon={LayoutList}
+        title="Sector Clear"
+        description={searchQuery 
+          ? `No directives matching "${searchQuery}" found in this sector.`
+          : "No active directives detected in this sector. All systems operational."
+        }
+        color="primary"
+      />
     );
   }
 

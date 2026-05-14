@@ -190,10 +190,14 @@ export const Gym = () => {
 
             <div className="space-y-4">
               {(!Array.isArray(workouts) || workouts.length === 0) ? (
-                <div className="text-center py-12 border-2 border-dashed border-white/5 rounded-3xl">
-                  <Dumbbell size={48} className="text-neutral-800 mx-auto mb-4" />
-                  <p className="text-neutral-500 font-medium italic">No iron has been moved yet.</p>
-                </div>
+                <EmptyState
+                  icon={Dumbbell}
+                  title="Iron Void"
+                  description="No iron has been moved yet. Start your first session to begin your transformation."
+                  actionLabel="Start New Session"
+                  onAction={() => setIsLoggerOpen(true)}
+                  color="green"
+                />
               ) : (
                 workouts.slice(0, 4).map(workout => (
                   <div key={workout._id} className="group flex items-center justify-between p-5 bg-white/5 border border-white/5 rounded-2xl hover:border-lime-500/30 transition-all cursor-pointer">

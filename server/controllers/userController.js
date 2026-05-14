@@ -120,25 +120,32 @@ exports.updateProfile = async (req, res) => {
 // ---- GET /api/user/stats ----
 exports.getStats = async (req, res) => {
   try {
+    const redisService = require('../services/redisService');
+    const cacheKey = `stats:${TEMP_USER_ID}`;
+    const cachedStats = await redisService.get(cacheKey);
+    if (cachedStats) {
+      return res.status(200).json(cachedStats);
+    }
+
     const user = await getOrCreateUser();
     await calculateStreak(user);
 
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
+    // ... all the aggregation logic ...
+    const todayStart = new Date(today);
+    todayStart.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(todayStart);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    const weekStart = new Date(today);
-    weekStart.setDate(weekStart.getDate() - 6); // last 7 days
+    const weekStart = new Date(todayStart);
+    weekStart.setDate(weekStart.getDate() - 6);
 
-    // Today's tasks
     const todayTasks = await Task.find({
       userId: TEMP_USER_ID,
-      createdAt: { $gte: today, $lt: tomorrow }
+      createdAt: { $gte: todayStart, $lt: tomorrow }
     });
     const completedToday = todayTasks.filter(t => t.status === 'completed').length;
 
-    // This week tasks
     const weekTasks = await Task.find({
       userId: TEMP_USER_ID,
       createdAt: { $gte: weekStart }
@@ -148,15 +155,13 @@ exports.getStats = async (req, res) => {
       ? Math.round((weekCompleted / weekTasks.length) * 100)
       : 0;
 
-    // Today's pomodoros
     const pomodorosToday = await PomodoroSession.countDocuments({
       userId: TEMP_USER_ID,
       type: 'work',
-      completedAt: { $gte: today, $lt: tomorrow }
+      completedAt: { $gte: todayStart, $lt: tomorrow }
     });
 
-    // 90-day activity heatmap
-    const ninetyDaysAgo = new Date(today);
+    const ninetyDaysAgo = new Date(todayStart);
     ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 89);
 
     const completedTasks90 = await Task.find({
@@ -165,7 +170,6 @@ exports.getStats = async (req, res) => {
       completedAt: { $gte: ninetyDaysAgo }
     }).select('completedAt');
 
-    // Group by date
     const heatmapMap = {};
     completedTasks90.forEach(t => {
       if (!t.completedAt) return;
@@ -176,12 +180,10 @@ exports.getStats = async (req, res) => {
     });
     const heatmapData = Object.entries(heatmapMap).map(([date, count]) => ({ date, count }));
 
-    // Weekly bar chart (last 7 days)
     const weeklyChart = [];
     for (let i = 6; i >= 0; i--) {
-      const d = new Date(today);
+      const d = new Date(todayStart);
       d.setDate(d.getDate() - i);
-      const key = d.toISOString().split('T')[0];
       const dayStart = new Date(d);
       const dayEnd = new Date(d);
       dayEnd.setDate(dayEnd.getDate() + 1);
@@ -196,13 +198,12 @@ exports.getStats = async (req, res) => {
       });
     }
 
-    // Category breakdown (this week)
     const categoryBreakdown = {};
     weekTasks.filter(t => t.status === 'completed').forEach(t => {
       categoryBreakdown[t.category] = (categoryBreakdown[t.category] || 0) + 1;
     });
 
-    res.status(200).json({
+    const stats = {
       streak: user.streak,
       totalXP: user.totalXP,
       rpgStats: user.rpgStats,
@@ -214,7 +215,10 @@ exports.getStats = async (req, res) => {
       heatmapData,
       weeklyChart,
       categoryBreakdown
-    });
+    };
+
+    await redisService.set(cacheKey, stats, 300); // 5 min
+    res.status(200).json(stats);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

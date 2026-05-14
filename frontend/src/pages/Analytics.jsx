@@ -499,10 +499,12 @@ export const Analytics = () => {
           )}
 
           {notes.length === 0 && (
-            <Card className="p-8 text-center">
-              <Brain size={32} className="text-plasma-400/50 mx-auto mb-3" />
-              <p className="font-body text-neutral-500">No personal notes yet. Tell your AI brain a bit about yourself.</p>
-            </Card>
+            <EmptyState
+              icon={Brain}
+              title="Memory Void"
+              description="No personal notes detected. Tell your AI brain about your peak hours, coffee preferences, or energy patterns."
+              color="plasma"
+            />
           )}
         </div>
       )}

@@ -43,16 +43,14 @@ export const Goals = () => {
             Failed to load goals. Please try again.
           </div>
         ) : goals.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center border border-dashed border-white/10 rounded-2xl bg-surface/50">
-            <Target size={48} className="text-neutral-600 mb-4" />
-            <h3 className="font-display font-semibold text-xl text-neutral-200 mb-2">No Goals Set</h3>
-            <p className="font-body text-neutral-400 max-w-md mb-6">
-              Vision without execution is hallucination. Start by establishing a new high-level goal and defining your milestones.
-            </p>
-            <ButtonPrimary onClick={() => setIsModalOpen(true)}>
-              Establish First Goal
-            </ButtonPrimary>
-          </div>
+          <EmptyState
+            icon={Target}
+            title="Strategic Void"
+            description="Vision without execution is hallucination. Start by establishing a new high-level goal and defining your milestones."
+            actionLabel="Establish First Goal"
+            onAction={() => setIsModalOpen(true)}
+            color="primary"
+          />
         ) : (
           <div className="space-y-12">
             {/* Active Goals Grid */}

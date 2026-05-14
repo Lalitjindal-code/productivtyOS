@@ -50,4 +50,9 @@ const taskSchema = new mongoose.Schema({
   timestamps: true
 });
 
+// Optimization Indexes
+taskSchema.index({ userId: 1, status: 1 });
+taskSchema.index({ userId: 1, createdAt: -1 });
+taskSchema.index({ userId: 1, category: 1 });
+
 module.exports = mongoose.model('Task', taskSchema);

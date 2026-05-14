@@ -9,6 +9,8 @@ import { Card } from '../components/common/Card';
 import { MainCalendar } from '../components/features/calendar/MainCalendar';
 import { useStats } from '../hooks/useStats';
 import { useGoals } from '../hooks/useGoals';
+import { StatsSkeleton, ChartSkeleton } from '../components/common/Skeleton';
+import { Skeleton } from '../components/common/Skeleton';
 
 // ---------- Activity Heatmap ----------
 const ActivityHeatmap = ({ heatmapData = [] }) => {
@@ -150,14 +152,37 @@ const StatusFeed = () => {
 
 // ---------- Main Dashboard ----------
 export const Dashboard = () => {
-  const { stats, isLoading } = useStats();
+  const { data: stats, isLoading: statsLoading } = useStats();
   const { goals } = useGoals();
   const activeGoals = goals?.filter(g => g.status === 'active')?.length || 0;
+
+  if (statsLoading) {
+    return (
+      <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+        <div className="flex justify-between items-center mb-10">
+          <div>
+            <Skeleton className="w-48 h-8 mb-2" />
+            <Skeleton className="w-64 h-4" />
+          </div>
+        </div>
+        <StatsSkeleton />
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+          <div className="lg:col-span-3 space-y-8">
+            <ChartSkeleton />
+            <ChartSkeleton />
+          </div>
+          <div className="space-y-8">
+            <ChartSkeleton />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const statCards = [
     {
       title: 'Current Streak',
-      value: isLoading ? '—' : `${stats?.streak?.current ?? 0}`,
+      value: `${stats?.streak?.current ?? 0}`,
       unit: 'days',
       icon: <Flame size={20} />,
       sub: `Longest: ${stats?.streak?.longest ?? 0} days`,
@@ -166,7 +191,7 @@ export const Dashboard = () => {
     },
     {
       title: 'Tasks Today',
-      value: isLoading ? '—' : `${stats?.tasksToday?.completed ?? 0}/${stats?.tasksToday?.total ?? 0}`,
+      value: `${stats?.tasksToday?.completed ?? 0}/${stats?.tasksToday?.total ?? 0}`,
       icon: <CheckCircle size={20} />,
       sub: 'Completed / Total',
       color: 'text-green-400',
@@ -174,7 +199,7 @@ export const Dashboard = () => {
     },
     {
       title: 'Week Completion',
-      value: isLoading ? '—' : `${stats?.weekCompletion?.rate ?? 0}%`,
+      value: `${stats?.weekCompletion?.rate ?? 0}%`,
       icon: <TrendingUp size={20} />,
       sub: `${stats?.weekCompletion?.completed ?? 0} of ${stats?.weekCompletion?.total ?? 0} tasks`,
       color: 'text-plasma-400',
@@ -182,7 +207,7 @@ export const Dashboard = () => {
     },
     {
       title: 'Pomodoros Today',
-      value: isLoading ? '—' : `${stats?.pomodorosToday ?? 0}`,
+      value: `${stats?.pomodorosToday ?? 0}`,
       icon: <Timer size={20} />,
       sub: 'Focus sessions',
       color: 'text-purple-400',
@@ -198,7 +223,7 @@ export const Dashboard = () => {
     },
     {
       title: 'RPG Level',
-      value: isLoading ? '—' : `LVL ${stats?.rpgStats?.level ?? 1}`,
+      value: `LVL ${stats?.rpgStats?.level ?? 1}`,
       icon: <Zap size={20} />,
       sub: `${stats?.character?.class ?? 'None'} Class`,
       color: 'text-yellow-400',
