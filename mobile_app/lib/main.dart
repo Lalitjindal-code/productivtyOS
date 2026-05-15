@@ -1,29 +1,31 @@
 import 'package:flutter/material.dart';
-import 'screens/home_screen.dart';
-import 'services/notification_service.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'app.dart';
+import 'core/theme/app_theme.dart';
 
 void main() {
-  runApp(ProductivityOS());
+  // Ensure Flutter is initialized
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  runApp(
+    const ProviderScope(
+      child: ProductivityOS(),
+    ),
+  );
 }
 
-class ProductivityOS extends StatelessWidget {
+class ProductivityOS extends ConsumerWidget {
+  const ProductivityOS({super.key});
+
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
+  Widget build(BuildContext context, WidgetRef ref) {
+    final router = ref.watch(routerProvider);
+
+    return MaterialApp.router(
       title: 'ProductivityOS',
-      navigatorKey: NotificationHandler.navigatorKey,
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        brightness: Brightness.dark,
-        primaryColor: Color(0xFFFFAD00), // Electric Amber
-        scaffoldBackgroundColor: Color(0xFF0D0D12),
-        fontFamily: 'Outfit',
-        textTheme: TextTheme(
-          headlineMedium: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-          bodyMedium: TextStyle(color: Color(0xFFA0A0B8)),
-        ),
-      ),
-      home: HomeScreen(),
+      theme: AppTheme.darkTheme,
+      routerConfig: router,
     );
   }
 }

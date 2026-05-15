@@ -3,22 +3,56 @@ description: ProductivityOS Mobile Companion
 version: 1.0.0+1
 
 environment:
-  sdk: ">=2.12.0 <3.0.0"
+  sdk: ">=3.3.0 <4.0.0"
 
 dependencies:
   flutter:
     sdk: flutter
-  http: ^0.13.4
-  shared_preferences: ^2.0.12
-  flutter_local_notifications: ^9.4.1
-  percent_indicator: ^4.0.1
-  intl: ^0.17.0
-  provider: ^6.0.2
+  
+  # State Management
+  flutter_riverpod: ^2.5.1
+  riverpod_annotation: ^2.3.5
+  
+  # Navigation
+  go_router: ^13.2.0
+  
+  # Networking
+  dio: ^5.4.1
+  connectivity_plus: ^6.0.3
+  
+  # Storage
+  drift: ^2.18.0
+  sqlite3_flutter_libs: ^0.5.24
+  flutter_secure_storage: ^9.0.0
+  shared_preferences: ^2.2.3
+  
+  # UI & Design System
+  google_fonts: ^6.2.1
+  flutter_animate: ^4.5.0
+  lottie: ^3.1.2
+  percent_indicator: ^4.2.3
+  fl_chart: ^0.68.0
+  lucide_icons: ^0.321.0
+  
+  # Services
+  flutter_local_notifications: ^17.1.1
+  firebase_messaging: ^15.0.0
+  flutter_background_service: ^5.0.7
+  usage_stats: ^1.1.0
+  system_alert_window: ^0.4.0
+  workmanager: ^0.5.2
+  home_widget: ^0.6.0
+  speech_to_text: ^6.6.1
+  intl: ^0.19.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^1.0.0
+  flutter_lints: ^3.0.1
+  drift_dev: ^2.18.0
+  build_runner: ^2.4.9
+  riverpod_generator: ^2.4.0
 
 flutter:
   uses-material-design: true
+
