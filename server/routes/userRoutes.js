@@ -9,5 +9,8 @@ router.get('/rpg-status', userController.getRPGStatus);
 router.get('/test-user', (req, res) => res.json({ message: 'User route works' }));
 router.get('/activity-feed', userController.getActivityFeed);
 router.post('/select-class', userController.selectClass);
+router.post('/mobile/register', userController.registerMobileDevice);
+router.post('/mobile/push-token', userController.updateFCMToken);
+router.post('/mobile/trigger-lock', userController.triggerMobileFocusLock);
 
 module.exports = router;

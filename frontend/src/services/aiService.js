@@ -216,4 +216,12 @@ export const aiService = {
       return buildFailure(error);
     }
   },
+  async getMusicSuggestion(title, category) {
+    try {
+      const response = await requestWithRetry(() => aiClient.post('/suggest-music', { title, category }));
+      return buildSuccess(response.data.data);
+    } catch (error) {
+      return buildFailure(error);
+    }
+  },
 };

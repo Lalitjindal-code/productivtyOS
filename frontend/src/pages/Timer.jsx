@@ -2,6 +2,12 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Play, Pause, RotateCcw, SkipForward, Zap, Settings, X, Maximize2, Minimize2, AlertTriangle } from 'lucide-react';
 import { useTimer } from '../contexts/TimerContext';
 import { useTasks } from '../hooks/useTasks';
+import { AmbientPlayer } from '../components/features/timer/AmbientPlayer';
+import { ZenOverlay } from '../components/features/timer/ZenOverlay';
+import { aiService } from '../services/aiService';
+import { useMusic } from '../contexts/MusicContext';
+import { api } from '../services/api';
+import { AnimatePresence } from 'framer-motion';
 
 // --- Circular Progress Ring ---
 const TimerRing = ({ progress, phase, timeLeft, totalDuration }) => {
@@ -156,7 +162,23 @@ export const Timer = () => {
   const [showDistractionModal, setShowDistractionModal] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [isFocusMode, setIsFocusMode] = useState(false);
+  const { togglePlaylist, setIsPlaying } = useMusic();
   const containerRef = useRef(null);
+
+  // --- AI DJ: Auto-switch music based on task ---
+  useEffect(() => {
+    if (linkedTaskId && linkedTaskTitle) {
+      const task = tasks?.find(t => t._id === linkedTaskId);
+      if (task) {
+        aiService.getMusicSuggestion(task.title, task.category).then(res => {
+          if (res.data?.genre) {
+            togglePlaylist(res.data.genre);
+            setIsPlaying(true);
+          }
+        });
+      }
+    }
+  }, [linkedTaskId, linkedTaskTitle, tasks]);
 
   const activeTasks = tasks?.filter(t => t.status !== 'completed' && t.status !== 'failed') || [];
 
@@ -170,8 +192,11 @@ export const Timer = () => {
       try {
         await containerRef.current?.requestFullscreen?.();
         setIsFocusMode(true);
+        // Trigger Mobile Lock
+        api.post('/user/mobile/trigger-lock', { taskTitle: linkedTaskTitle }).catch(console.error);
       } catch {
-        setIsFocusMode(prev => !prev); // fallback: just dim everything
+        setIsFocusMode(prev => !prev);
+        api.post('/user/mobile/trigger-lock', { taskTitle: linkedTaskTitle }).catch(console.error);
       }
     } else {
       if (document.fullscreenElement) {
@@ -198,148 +223,163 @@ export const Timer = () => {
           : 'bg-transparent py-8 px-4'
       }`}
     >
-      {/* Phase Tabs */}
-      <div className={`flex gap-2 mb-12 transition-opacity duration-500 ${isFocusMode ? 'opacity-20 hover:opacity-100' : 'opacity-100'}`}>
-        {['work', 'shortBreak', 'longBreak'].map(p => (
-          <button
-            key={p}
-            onClick={() => {
-              if (!isRunning) {
-                // Allow manual phase select only if timer isn't running
-              }
-            }}
-            className={`font-body text-sm px-4 py-1.5 rounded-full transition-all ${
-              phase === p
-                ? 'bg-white/10 text-neutral-100 font-semibold'
-                : 'text-neutral-500 hover:text-neutral-400'
-            }`}
-          >
-            {phaseLabels[p]}
-          </button>
-        ))}
-      </div>
-
-      {/* Circular Ring */}
-      <div className="mb-12">
-        <TimerRing
-          progress={progress}
-          phase={phase}
-          timeLeft={timeLeft}
-          totalDuration={totalDuration}
-        />
-      </div>
-
-      {/* Cycle Dots */}
-      <div className={`flex gap-2.5 mb-8 transition-opacity ${isFocusMode ? 'opacity-30 hover:opacity-100' : ''}`}>
-        {Array.from({ length: settings.longBreakInterval }).map((_, i) => (
-          <div
-            key={i}
-            className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${
-              i < (cycleCount % settings.longBreakInterval)
-                ? 'bg-primary-400 shadow-[0_0_6px_rgba(255,171,0,0.8)]'
-                : 'bg-white/10'
-            }`}
+      <AnimatePresence>
+        {isFocusMode && (
+          <ZenOverlay
+            timeLeft={timeLeft}
+            phase={phase}
+            isRunning={isRunning}
+            toggleTimer={isRunning ? pause : start}
+            onExit={() => setIsFocusMode(false)}
           />
-        ))}
-      </div>
-
-      {/* Task Linker */}
-      <div className={`mb-8 w-full max-w-xs transition-opacity ${isFocusMode ? 'opacity-20 hover:opacity-100' : ''}`}>
-        <div className="flex items-center gap-2 bg-surface/80 border border-white/10 rounded-xl px-4 py-2.5">
-          <Zap size={16} className="text-primary-400 shrink-0" />
-          <select
-            value={linkedTaskId || ''}
-            onChange={e => {
-              const selected = activeTasks.find(t => t._id === e.target.value);
-              setLinkedTaskId(e.target.value || null);
-              setLinkedTaskTitle(selected?.title || null);
-            }}
-            className="flex-1 bg-transparent text-sm font-body text-neutral-300 focus:outline-none appearance-none cursor-pointer min-w-0"
-          >
-            <option value="">Working on: (no task)</option>
-            {activeTasks.map(t => (
-              <option key={t._id} value={t._id}>{t.title}</option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      {/* Controls */}
-      <div className="flex items-center gap-5 mb-10">
-        <button
-          onClick={reset}
-          className="w-12 h-12 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 text-neutral-400 hover:text-neutral-100 transition-all"
-          title="Reset"
-        >
-          <RotateCcw size={20} />
-        </button>
-
-        <button
-          onClick={isRunning ? pause : start}
-          className={`w-20 h-20 flex items-center justify-center rounded-full text-void font-bold text-xl shadow-lg transition-all duration-300 ${
-            phase === 'work'
-              ? 'bg-primary-400 hover:bg-primary-300 shadow-[0_0_24px_rgba(255,171,0,0.5)]'
-              : phase === 'shortBreak'
-                ? 'bg-plasma-400 hover:bg-cyan-300 shadow-[0_0_24px_rgba(0,240,255,0.5)]'
-                : 'bg-purple-400 hover:bg-purple-300 shadow-[0_0_24px_rgba(167,139,250,0.5)]'
-          }`}
-        >
-          {isRunning ? <Pause size={28} /> : <Play size={28} className="translate-x-0.5" />}
-        </button>
-
-        <button
-          onClick={skip}
-          className="w-12 h-12 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 text-neutral-400 hover:text-neutral-100 transition-all"
-          title="Skip"
-        >
-          <SkipForward size={20} />
-        </button>
-      </div>
-
-      {/* Secondary Controls */}
-      <div className={`flex items-center gap-4 transition-opacity ${isFocusMode ? 'opacity-20 hover:opacity-100' : ''}`}>
-        {isRunning && phase === 'work' && (
-          <button
-            onClick={() => setShowDistractionModal(true)}
-            className="flex items-center gap-2 text-sm font-body text-red-400/70 hover:text-red-400 border border-red-500/20 hover:border-red-500/40 px-4 py-2 rounded-full transition-all"
-          >
-            <AlertTriangle size={14} />
-            <span>Distracted ({distractions.length})</span>
-          </button>
         )}
+      </AnimatePresence>
 
-        <button
-          onClick={() => setShowSettings(true)}
-          className="flex items-center gap-2 text-sm font-body text-neutral-500 hover:text-neutral-300 transition-colors"
-        >
-          <Settings size={16} />
-          <span>Settings</span>
-        </button>
-
-        <button
-          onClick={toggleFocusMode}
-          className="flex items-center gap-2 text-sm font-body text-neutral-500 hover:text-neutral-300 transition-colors"
-          title={isFocusMode ? 'Exit Focus Mode' : 'Enter Focus Mode'}
-        >
-          {isFocusMode ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
-          <span>{isFocusMode ? 'Exit Focus' : 'Focus Mode'}</span>
-        </button>
-      </div>
-
-      {/* Distraction log list (visible after focus) */}
-      {distractions.length > 0 && !isFocusMode && (
-        <div className="mt-10 w-full max-w-xs">
-          <p className="font-body text-xs text-neutral-500 mb-2 uppercase tracking-widest">Distractions this session</p>
-          <div className="space-y-1">
-            {distractions.map((d, i) => (
-              <div key={i} className="flex items-center gap-2 text-sm font-body text-red-400/80 bg-red-500/5 border border-red-500/10 px-3 py-1.5 rounded-lg">
-                <AlertTriangle size={12} />
-                <span>{d}</span>
-              </div>
+      <div className={`w-full max-w-6xl grid grid-cols-1 lg:grid-cols-2 gap-12 items-center transition-all duration-700 ${isFocusMode ? 'opacity-0 scale-95' : 'opacity-100'}`}>
+        <div className="flex flex-col items-center">
+          {/* Phase Tabs */}
+          <div className="flex gap-2 mb-12">
+            {['work', 'shortBreak', 'longBreak'].map(p => (
+              <button
+                key={p}
+                onClick={() => {}}
+                className={`font-body text-sm px-4 py-1.5 rounded-full transition-all ${
+                  phase === p
+                    ? 'bg-white/10 text-neutral-100 font-semibold'
+                    : 'text-neutral-500 hover:text-neutral-400'
+                }`}
+              >
+                {phaseLabels[p]}
+              </button>
             ))}
           </div>
+
+          {/* Circular Ring */}
+          <div className="mb-12">
+            <TimerRing
+              progress={progress}
+              phase={phase}
+              timeLeft={timeLeft}
+              totalDuration={totalDuration}
+            />
+          </div>
+
+          {/* Cycle Dots */}
+          <div className="flex gap-2.5 mb-8">
+            {Array.from({ length: settings.longBreakInterval }).map((_, i) => (
+              <div
+                key={i}
+                className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${
+                  i < (cycleCount % settings.longBreakInterval)
+                    ? 'bg-primary-400 shadow-[0_0_6px_rgba(255,171,0,0.8)]'
+                    : 'bg-white/10'
+                }`}
+              />
+            ))}
+          </div>
+
+          {/* Task Linker */}
+          <div className="mb-8 w-full max-w-xs">
+            <div className="flex items-center gap-2 bg-surface/80 border border-white/10 rounded-xl px-4 py-2.5">
+              <Zap size={16} className="text-primary-400 shrink-0" />
+              <select
+                value={linkedTaskId || ''}
+                onChange={e => {
+                  const selected = activeTasks.find(t => t._id === e.target.value);
+                  setLinkedTaskId(e.target.value || null);
+                  setLinkedTaskTitle(selected?.title || null);
+                }}
+                className="flex-1 bg-transparent text-sm font-body text-neutral-300 focus:outline-none appearance-none cursor-pointer min-w-0"
+              >
+                <option value="">Working on: (no task)</option>
+                {activeTasks.map(t => (
+                  <option key={t._id} value={t._id}>{t.title}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Controls */}
+          <div className="flex items-center gap-5 mb-10">
+            <button
+              onClick={reset}
+              className="w-12 h-12 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 text-neutral-400 hover:text-neutral-100 transition-all"
+              title="Reset"
+            >
+              <RotateCcw size={20} />
+            </button>
+
+            <button
+              onClick={isRunning ? pause : start}
+              className={`w-20 h-20 flex items-center justify-center rounded-full text-void font-bold text-xl shadow-lg transition-all duration-300 ${
+                phase === 'work'
+                  ? 'bg-primary-400 hover:bg-primary-300 shadow-[0_0_24px_rgba(255,171,0,0.5)]'
+                  : phase === 'shortBreak'
+                    ? 'bg-plasma-400 hover:bg-cyan-300 shadow-[0_0_24px_rgba(0,240,255,0.5)]'
+                    : 'bg-purple-400 hover:bg-purple-300 shadow-[0_0_24px_rgba(167,139,250,0.5)]'
+              }`}
+            >
+              {isRunning ? <Pause size={28} /> : <Play size={28} className="translate-x-0.5" />}
+            </button>
+
+            <button
+              onClick={skip}
+              className="w-12 h-12 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 text-neutral-400 hover:text-neutral-100 transition-all"
+              title="Skip"
+            >
+              <SkipForward size={20} />
+            </button>
+          </div>
+
+          {/* Secondary Controls */}
+          <div className="flex items-center gap-4">
+            {isRunning && phase === 'work' && (
+              <button
+                onClick={() => setShowDistractionModal(true)}
+                className="flex items-center gap-2 text-sm font-body text-red-400/70 hover:text-red-400 border border-red-500/20 hover:border-red-500/40 px-4 py-2 rounded-full transition-all"
+              >
+                <AlertTriangle size={14} />
+                <span>Distracted ({distractions.length})</span>
+              </button>
+            )}
+
+            <button
+              onClick={() => setShowSettings(true)}
+              className="flex items-center gap-2 text-sm font-body text-neutral-500 hover:text-neutral-300 transition-colors"
+            >
+              <Settings size={16} />
+              <span>Settings</span>
+            </button>
+
+            <button
+              onClick={toggleFocusMode}
+              className="flex items-center gap-2 text-sm font-body text-neutral-500 hover:text-neutral-300 transition-colors"
+              title={isFocusMode ? 'Exit Focus Mode' : 'Enter Focus Mode'}
+            >
+              {isFocusMode ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+              <span>{isFocusMode ? 'Exit Focus' : 'Focus Mode'}</span>
+            </button>
+          </div>
         </div>
-      )}
+
+        <div className="flex flex-col gap-6">
+          <AmbientPlayer />
+          
+          {distractions.length > 0 && (
+            <div className="mt-4">
+              <p className="font-body text-[10px] text-neutral-500 mb-2 uppercase tracking-widest font-bold">Session Distractions</p>
+              <div className="space-y-2">
+                {distractions.map((d, i) => (
+                  <div key={i} className="flex items-center gap-2 text-xs font-body text-red-400/80 bg-red-500/5 border border-red-500/10 px-3 py-2 rounded-xl">
+                    <AlertTriangle size={12} />
+                    <span>{d}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* Modals */}
       {showDistractionModal && (

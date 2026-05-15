@@ -40,4 +40,5 @@ module.exports = {
   PROMPT_JOURNAL_SUMMARY,
   PROMPT_CHAT_BRAIN,
   PROMPT_SCHEDULE_SUGGEST,
+  PROMPT_MUSIC_SUGGEST: 'You are an AI DJ and productivity mood specialist. Suggest a music genre (lofi, ambient, nature, or cyber) based on the task description and category. Return only valid JSON: { "genre": "string", "reason": "string" }. Raw JSON only.'
 };

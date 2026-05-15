@@ -356,4 +356,17 @@ module.exports = {
   chatWithBrain,
   suggestTaskSchedule,
   generateShameReport,
+  suggestMusic: async (taskTitle, category) => {
+    const prompt = `Task: ${taskTitle}\nCategory: ${category}`;
+    try {
+      const response = await callAI(prompt, prompts.PROMPT_MUSIC_SUGGEST, { jsonMode: true });
+      const parsed = safeParseJSON(response.text);
+      return {
+        genre: ['lofi', 'ambient', 'nature', 'cyber'].includes(parsed?.genre) ? parsed.genre : 'lofi',
+        reason: parsed?.reason || 'Focus mode optimized.'
+      };
+    } catch (error) {
+      return { genre: 'lofi', reason: 'Stay focused.' };
+    }
+  }
 };

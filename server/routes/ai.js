@@ -409,4 +409,14 @@ router.post('/suggest-schedule', auth, aiRateLimit('schedule'), async (req, res)
   }
 });
 
+router.post('/suggest-music', auth, async (req, res) => {
+  try {
+    const { title, category } = req.body || {};
+    const result = await aiService.suggestMusic(title, category);
+    return jsonSuccess(res, result);
+  } catch (error) {
+    return handleRouteError(res, error);
+  }
+});
+
 module.exports = router;

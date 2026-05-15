@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { MainLayout } from './components/layout/MainLayout';
 import { TimerProvider } from './contexts/TimerContext';
 import { NotificationProvider } from './contexts/NotificationContext';
+import { MusicProvider } from './contexts/MusicContext';
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
@@ -25,22 +26,24 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <NotificationProvider>
         <TimerProvider>
-          <Router>
-            <Routes>
-              <Route path="/" element={<MainLayout />}>
-                <Route index element={<Dashboard />} />
-                <Route path="tasks" element={<Tasks />} />
-                <Route path="goals" element={<Goals />} />
-                <Route path="timer" element={<Timer />} />
-                <Route path="gym" element={<Gym />} />
-                <Route path="journal" element={<Journal />} />
-                <Route path="analytics" element={<Analytics />} />
-                <Route path="rpg" element={<Character />} />
-                <Route path="settings" element={<Settings />} />
-                <Route path="shame" element={<WallOfShame />} />
-              </Route>
-            </Routes>
-          </Router>
+          <MusicProvider>
+            <Router>
+              <Routes>
+                <Route path="/" element={<MainLayout />}>
+                  <Route index element={<Dashboard />} />
+                  <Route path="tasks" element={<Tasks />} />
+                  <Route path="goals" element={<Goals />} />
+                  <Route path="timer" element={<Timer />} />
+                  <Route path="gym" element={<Gym />} />
+                  <Route path="journal" element={<Journal />} />
+                  <Route path="analytics" element={<Analytics />} />
+                  <Route path="rpg" element={<Character />} />
+                  <Route path="settings" element={<Settings />} />
+                  <Route path="shame" element={<WallOfShame />} />
+                </Route>
+              </Routes>
+            </Router>
+          </MusicProvider>
         </TimerProvider>
       </NotificationProvider>
     </QueryClientProvider>

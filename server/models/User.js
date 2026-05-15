@@ -63,6 +63,13 @@ const userSchema = new mongoose.Schema({
     title: { type: String },
     description: { type: String },
     unlockedAt: { type: Date, default: Date.now }
+  }],
+  fcmToken: { type: String, default: '' }, // For push notifications
+  mobileDevices: [{
+    deviceId: { type: String },
+    model: { type: String },
+    os: { type: String },
+    lastActive: { type: Date, default: Date.now }
   }]
 }, { timestamps: true });
 

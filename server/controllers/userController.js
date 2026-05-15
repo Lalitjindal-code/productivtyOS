@@ -333,3 +333,47 @@ exports.getActivityFeed = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
+exports.registerMobileDevice = async (req, res) => {
+  try {
+    const { deviceId, model, os } = req.body;
+    const user = await User.findOne({ userId: TEMP_USER_ID });
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    // Update or add device
+    const deviceIndex = user.mobileDevices.findIndex(d => d.deviceId === deviceId);
+    if (deviceIndex > -1) {
+      user.mobileDevices[deviceIndex].lastActive = new Date();
+    } else {
+      user.mobileDevices.push({ deviceId, model, os });
+    }
+
+    await user.save();
+    res.status(200).json({ success: true, message: 'Mobile device registered' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.updateFCMToken = async (req, res) => {
+  try {
+    const { fcmToken } = req.body;
+    await User.findOneAndUpdate({ userId: TEMP_USER_ID }, { fcmToken });
+    res.status(200).json({ success: true, message: 'FCM Token updated' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.triggerMobileFocusLock = async (req, res) => {
+  try {
+    const { taskTitle } = req.body;
+    const notificationService = require('../services/notificationService');
+    await notificationService.sendFocusLock(TEMP_USER_ID, taskTitle || 'Zen Focus Session');
+    res.status(200).json({ success: true, message: 'Focus lock signal sent to mobile' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+
