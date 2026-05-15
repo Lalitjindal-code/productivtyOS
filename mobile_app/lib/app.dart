@@ -1,14 +1,31 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'features/auth/presentation/login_screen.dart';
+import 'features/auth/data/auth_repository.dart';
 import 'features/home/presentation/home_screen.dart';
+import 'features/tasks/presentation/tasks_screen.dart';
 // Note: Other screens will be imported as they are refactored
 // For now, using placeholders or existing screens
 
 final routerProvider = Provider<GoRouter>((ref) {
+  final authState = ref.watch(authStateProvider);
+
   return GoRouter(
     initialLocation: '/',
+    redirect: (context, state) {
+      final isLoggedIn = authState.valueOrNull ?? false;
+      final isAuthRoute = state.uri.path.startsWith('/auth');
+
+      if (!isLoggedIn && !isAuthRoute) return '/auth/login';
+      if (isLoggedIn && isAuthRoute) return '/';
+      return null;
+    },
     routes: [
+      GoRoute(
+        path: '/auth/login',
+        builder: (context, state) => const LoginScreen(),
+      ),
       ShellRoute(
         builder: (context, state, child) => MainShell(child: child),
         routes: [
@@ -18,7 +35,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: '/tasks',
-            builder: (context, state) => const Scaffold(body: Center(child: Text('Tasks Screen'))),
+            builder: (context, state) => const TasksScreen(),
           ),
           GoRoute(
             path: '/focus',
