@@ -5,6 +5,9 @@ import 'features/auth/presentation/login_screen.dart';
 import 'features/auth/data/auth_repository.dart';
 import 'features/home/presentation/home_screen.dart';
 import 'features/tasks/presentation/tasks_screen.dart';
+import 'features/focus/presentation/focus_screen.dart';
+import 'features/gym/presentation/gym_screen.dart';
+import 'features/profile/presentation/profile_screen.dart';
 // Note: Other screens will be imported as they are refactored
 // For now, using placeholders or existing screens
 
@@ -39,15 +42,15 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: '/focus',
-            builder: (context, state) => const Scaffold(body: Center(child: Text('Focus Screen'))),
+            builder: (context, state) => const FocusScreen(),
           ),
           GoRoute(
             path: '/gym',
-            builder: (context, state) => const Scaffold(body: Center(child: Text('Gym Screen'))),
+            builder: (context, state) => const GymScreen(),
           ),
           GoRoute(
             path: '/profile',
-            builder: (context, state) => const Scaffold(body: Center(child: Text('Profile Screen'))),
+            builder: (context, state) => const ProfileScreen(),
           ),
         ],
       ),

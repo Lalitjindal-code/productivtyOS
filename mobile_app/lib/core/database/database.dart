@@ -30,7 +30,28 @@ class SyncQueue extends Table {
   IntColumn get retryCount => integer().withDefault(const Constant(0))();
 }
 
-@DriftDatabase(tables: [LocalTasks, SyncQueue])
+// Focus Schedules
+class FocusSchedules extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get name => text()();
+  TextColumn get daysOfWeek => text()();            // JSON: [1,2,3,4,5]
+  IntColumn get startHour => integer()();
+  IntColumn get startMinute => integer()();
+  IntColumn get endHour => integer()();
+  IntColumn get endMinute => integer()();
+  BoolColumn get isActive => boolean().withDefault(const Constant(true))();
+}
+
+// Blocked Apps
+class BlockedApps extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get packageName => text()();           // com.instagram.android
+  TextColumn get appName => text()();
+  TextColumn get scheduleIds => text()().nullable()(); // JSON: [1, 2]
+  BoolColumn get isBlocked => boolean().withDefault(const Constant(true))();
+}
+
+@DriftDatabase(tables: [LocalTasks, SyncQueue, FocusSchedules, BlockedApps])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 

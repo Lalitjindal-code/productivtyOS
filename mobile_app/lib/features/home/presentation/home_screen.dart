@@ -3,6 +3,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../shared/widgets/app_card.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -71,7 +72,7 @@ class HomeScreen extends StatelessWidget {
                 ),
               ],
             ),
-          ),
+          ).animate().fadeIn(duration: 400.ms).slideX(begin: -0.2),
         ),
         const SizedBox(width: AppSpacing.md),
         Expanded(
@@ -91,7 +92,7 @@ class HomeScreen extends StatelessWidget {
                 ),
               ],
             ),
-          ),
+          ).animate().fadeIn(duration: 400.ms, delay: 100.ms).slideX(begin: 0.2),
         ),
       ],
     );
