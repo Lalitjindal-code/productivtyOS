@@ -15,7 +15,7 @@ class NotificationService {
       android: initializationSettingsAndroid,
     );
 
-    await _plugin.initialize(initializationSettings);
+    await _plugin.initialize(settings: initializationSettings);
   }
 
   static Future<void> showNotification({
@@ -34,7 +34,12 @@ class NotificationService {
     const NotificationDetails platformChannelSpecifics =
         NotificationDetails(android: androidPlatformChannelSpecifics);
 
-    await _plugin.show(id, title, body, platformChannelSpecifics);
+    await _plugin.show(
+      id: id,
+      title: title,
+      body: body,
+      notificationDetails: platformChannelSpecifics,
+    );
   }
 
   static Future<void> scheduleDailyBriefing() async {

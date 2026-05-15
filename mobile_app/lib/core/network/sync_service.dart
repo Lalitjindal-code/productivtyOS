@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:dio/dio.dart';
+import 'package:drift/drift.dart';
 import '../database/database.dart';
 import '../network/dio_client.dart';
 

@@ -1,6 +1,9 @@
+import 'package:flutter/material.dart';
 import '../../../shared/widgets/app_card.dart';
 import '../../../shared/widgets/xp_bar.dart';
 import '../../../shared/widgets/streak_badge.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_typography.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});

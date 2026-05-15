@@ -47,7 +47,7 @@ class BlockedApps extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get packageName => text()();           // com.instagram.android
   TextColumn get appName => text()();
-  TextColumn get scheduleIds => text()().nullable()(); // JSON: [1, 2]
+  TextColumn get scheduleIds => text().nullable()(); // JSON: [1, 2]
   BoolColumn get isBlocked => boolean().withDefault(const Constant(true))();
 }
 

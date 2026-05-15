@@ -18,7 +18,6 @@ class FocusShieldService {
         notificationChannelId: 'focus_shield',
         initialNotificationTitle: 'Focus Shield Active',
         initialNotificationContent: 'Monitoring distractions...',
-        foregroundServiceType: ForegroundServiceType.dataSync,
       ),
       iosConfiguration: IosConfiguration(
         autoStart: false,
