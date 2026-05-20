@@ -1,26 +1,25 @@
 const PomodoroSession = require('../models/PomodoroSession');
 const Task = require('../models/Task');
 
-const TEMP_USER_ID = 'user_mvp_1'; // Consistent with MVP
-
 exports.logSession = async (req, res) => {
   try {
+    const userId = req.user.userId;
     const { taskId, duration, type, distractionsLog } = req.body;
 
     const newSession = new PomodoroSession({
-      userId: TEMP_USER_ID,
+      userId,
       taskId: taskId || undefined,
       duration,
       type,
-      distractionsLog
+      distractionsLog,
     });
 
     const savedSession = await newSession.save();
 
-    // Optional: If it was a 'work' session linked to a task, increment pomodorosUsed
+    // If it was a 'work' session linked to a task, increment pomodorosUsed
     if (type === 'work' && taskId) {
       await Task.findOneAndUpdate(
-        { _id: taskId, userId: TEMP_USER_ID },
+        { _id: taskId, userId },
         { $inc: { pomodorosUsed: 1 } }
       );
     }
@@ -33,13 +32,12 @@ exports.logSession = async (req, res) => {
 
 exports.getDailyStats = async (req, res) => {
   try {
-    // Get stats for today (midnight to now)
     const startOfDay = new Date();
     startOfDay.setHours(0, 0, 0, 0);
 
     const sessions = await PomodoroSession.find({
-      userId: TEMP_USER_ID,
-      completedAt: { $gte: startOfDay }
+      userId: req.user.userId,
+      completedAt: { $gte: startOfDay },
     });
 
     const completedPomodoros = sessions.filter(s => s.type === 'work').length;
@@ -50,7 +48,7 @@ exports.getDailyStats = async (req, res) => {
     res.status(200).json({
       completedPomodoros,
       totalFocusMinutes,
-      sessions
+      sessions,
     });
   } catch (error) {
     res.status(500).json({ message: error.message });

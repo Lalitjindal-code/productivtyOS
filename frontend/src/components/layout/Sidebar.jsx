@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   CheckSquare, 
@@ -10,12 +10,22 @@ import {
   BarChart2, 
   UserCircle,
   Settings,
-  Skull
+  Skull,
+  LogOut
 } from 'lucide-react';
 import { useStats } from '../../hooks/useStats';
+import { useAuth } from '../../contexts/AuthContext';
 
 export const Sidebar = () => {
   const { data: stats, isLoading } = useStats();
+  const { logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login');
+  };
+
   const navItems = [
     { to: "/", icon: LayoutDashboard, label: "Dashboard" },
     { to: "/tasks", icon: CheckSquare, label: "Tasks" },
@@ -57,12 +67,12 @@ export const Sidebar = () => {
         ))}
       </nav>
       
-      <div className="p-4 border-t border-white/10">
+      <div className="p-4 border-t border-white/10 flex flex-col gap-2">
         <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-elevated border border-white/5">
           <div className="w-8 h-8 rounded-full bg-void_purple-500/20 flex items-center justify-center text-void_purple-400 font-bold font-display">
             {stats?.character?.avatar || '👤'}
           </div>
-          <div>
+          <div className="flex-1">
             <div className="font-body text-sm font-semibold text-neutral-100">
               {isLoading ? '...' : `Level ${stats?.rpgStats?.level ?? 1}`}
             </div>
@@ -71,6 +81,14 @@ export const Sidebar = () => {
             </div>
           </div>
         </div>
+        
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-red-400 hover:text-red-300 hover:bg-red-500/10 border border-transparent hover:border-red-500/20 font-body font-semibold text-xs transition-all duration-200"
+        >
+          <LogOut size={16} />
+          Sign Out
+        </button>
       </div>
     </aside>
   );

@@ -2,19 +2,8 @@ const User = require('../models/User');
 const Task = require('../models/Task');
 const PomodoroSession = require('../models/PomodoroSession');
 
-const TEMP_USER_ID = 'user_mvp_1';
-
-// Ensure MVP user exists in DB (upsert on first call)
-const getOrCreateUser = async () => {
-  let user = await User.findOne({ userId: TEMP_USER_ID });
-  if (!user) {
-    user = await User.create({ userId: TEMP_USER_ID });
-  }
-  return user;
-};
-
 // ---- Streak Logic ----
-const calculateStreak = async (user) => {
+const calculateStreak = async (user, userId) => {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -23,9 +12,9 @@ const calculateStreak = async (user) => {
 
   // Check if there was any task completed yesterday
   const taskYesterday = await Task.findOne({
-    userId: TEMP_USER_ID,
+    userId,
     status: 'completed',
-    completedAt: { $gte: yesterday, $lt: today }
+    completedAt: { $gte: yesterday, $lt: today },
   });
 
   const lastActive = user.streak.lastActiveDate
@@ -37,15 +26,12 @@ const calculateStreak = async (user) => {
   const lastActiveIsYesterday = lastActive && lastActive.getTime() === yesterday.getTime();
 
   if (lastActiveIsToday) {
-    // Already updated today, no change
     return user.streak.current;
   } else if (lastActiveIsYesterday || taskYesterday) {
-    // Streak continues
     user.streak.current += 1;
     user.streak.longest = Math.max(user.streak.longest, user.streak.current);
     user.streak.lastActiveDate = today;
   } else {
-    // Streak broken
     user.streak.current = 0;
     user.streak.lastActiveDate = today;
   }
@@ -55,8 +41,11 @@ const calculateStreak = async (user) => {
 };
 
 // ---- Touch streak on task completion (called internally) ----
-exports.touchStreak = async () => {
-  const user = await getOrCreateUser();
+// Now accepts userId as a parameter
+exports.touchStreak = async (userId) => {
+  const user = await User.findOne({ userId });
+  if (!user) return 0;
+
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -65,7 +54,6 @@ exports.touchStreak = async () => {
     : null;
   if (lastActive) lastActive.setHours(0, 0, 0, 0);
 
-  // If first completion today, increment streak
   if (!lastActive || lastActive.getTime() !== today.getTime()) {
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
@@ -89,7 +77,8 @@ exports.touchStreak = async () => {
 // ---- GET /api/user/profile ----
 exports.getProfile = async (req, res) => {
   try {
-    const user = await getOrCreateUser();
+    const user = await User.findOne({ userId: req.user.userId });
+    if (!user) return res.status(404).json({ message: 'User not found' });
     res.status(200).json(user);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -99,7 +88,9 @@ exports.getProfile = async (req, res) => {
 // ---- PUT /api/user/profile ----
 exports.updateProfile = async (req, res) => {
   try {
-    const user = await getOrCreateUser();
+    const user = await User.findOne({ userId: req.user.userId });
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
     const allowed = ['displayName', 'avatarUrl', 'timezone', 'dateOfBirth', 'settings'];
     allowed.forEach(field => {
       if (req.body[field] !== undefined) {
@@ -120,18 +111,20 @@ exports.updateProfile = async (req, res) => {
 // ---- GET /api/user/stats ----
 exports.getStats = async (req, res) => {
   try {
+    const userId = req.user.userId;
     const redisService = require('../services/redisService');
-    const cacheKey = `stats:${TEMP_USER_ID}`;
+    const cacheKey = `stats:${userId}`;
     const cachedStats = await redisService.get(cacheKey);
     if (cachedStats) {
       return res.status(200).json(cachedStats);
     }
 
-    const user = await getOrCreateUser();
-    await calculateStreak(user);
+    const user = await User.findOne({ userId });
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    await calculateStreak(user, userId);
 
     const today = new Date();
-    // ... all the aggregation logic ...
     const todayStart = new Date(today);
     todayStart.setHours(0, 0, 0, 0);
     const tomorrow = new Date(todayStart);
@@ -141,33 +134,30 @@ exports.getStats = async (req, res) => {
     weekStart.setDate(weekStart.getDate() - 6);
 
     const todayTasks = await Task.find({
-      userId: TEMP_USER_ID,
-      createdAt: { $gte: todayStart, $lt: tomorrow }
+      userId,
+      createdAt: { $gte: todayStart, $lt: tomorrow },
     });
     const completedToday = todayTasks.filter(t => t.status === 'completed').length;
 
-    const weekTasks = await Task.find({
-      userId: TEMP_USER_ID,
-      createdAt: { $gte: weekStart }
-    });
+    const weekTasks = await Task.find({ userId, createdAt: { $gte: weekStart } });
     const weekCompleted = weekTasks.filter(t => t.status === 'completed').length;
     const weekCompletionRate = weekTasks.length > 0
       ? Math.round((weekCompleted / weekTasks.length) * 100)
       : 0;
 
     const pomodorosToday = await PomodoroSession.countDocuments({
-      userId: TEMP_USER_ID,
+      userId,
       type: 'work',
-      completedAt: { $gte: todayStart, $lt: tomorrow }
+      completedAt: { $gte: todayStart, $lt: tomorrow },
     });
 
     const ninetyDaysAgo = new Date(todayStart);
     ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 89);
 
     const completedTasks90 = await Task.find({
-      userId: TEMP_USER_ID,
+      userId,
       status: 'completed',
-      completedAt: { $gte: ninetyDaysAgo }
+      completedAt: { $gte: ninetyDaysAgo },
     }).select('completedAt');
 
     const heatmapMap = {};
@@ -188,13 +178,13 @@ exports.getStats = async (req, res) => {
       const dayEnd = new Date(d);
       dayEnd.setDate(dayEnd.getDate() + 1);
       const count = await Task.countDocuments({
-        userId: TEMP_USER_ID,
+        userId,
         status: 'completed',
-        completedAt: { $gte: dayStart, $lt: dayEnd }
+        completedAt: { $gte: dayStart, $lt: dayEnd },
       });
       weeklyChart.push({
         label: d.toLocaleDateString('en-US', { weekday: 'short' }),
-        count
+        count,
       });
     }
 
@@ -214,10 +204,10 @@ exports.getStats = async (req, res) => {
       pomodorosToday,
       heatmapData,
       weeklyChart,
-      categoryBreakdown
+      categoryBreakdown,
     };
 
-    await redisService.set(cacheKey, stats, 300); // 5 min
+    await redisService.set(cacheKey, stats, 300); // 5 min cache
     res.status(200).json(stats);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -232,19 +222,19 @@ exports.selectClass = async (req, res) => {
       return res.status(400).json({ message: 'Invalid class selection' });
     }
 
-    const user = await getOrCreateUser();
+    const user = await User.findOne({ userId: req.user.userId });
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
     user.character.class = charClass;
-    
-    // Set default avatar based on class
+
     const avatars = {
-      'Warrior': '⚔️',
-      'Scholar': '📜',
-      'Cyborg': '🤖',
-      'Monk': '🧘'
+      Warrior: '⚔️',
+      Scholar: '📜',
+      Cyborg: '🤖',
+      Monk: '🧘',
     };
     user.character.avatar = avatars[charClass];
-    
-    // Initial stat boost based on class
+
     if (user.rpgStats.level === 1 && user.totalXP === 0) {
       if (charClass === 'Warrior') { user.rpgStats.strength = 15; user.rpgStats.maxHP = 120; user.rpgStats.hp = 120; }
       if (charClass === 'Scholar') { user.rpgStats.intelligence = 15; }
@@ -262,70 +252,64 @@ exports.selectClass = async (req, res) => {
 // ---- GET /api/user/rpg-status ----
 exports.getRPGStatus = async (req, res) => {
   try {
-    const user = await getOrCreateUser();
+    const user = await User.findOne({ userId: req.user.userId });
+    if (!user) return res.status(404).json({ message: 'User not found' });
     res.status(200).json({
       character: user.character,
       rpgStats: user.rpgStats,
       achievements: user.achievements,
-      totalXP: user.totalXP
+      totalXP: user.totalXP,
     });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
 
-// ---- GET /api/user/feed ----
+// ---- GET /api/user/activity-feed ----
 exports.getActivityFeed = async (req, res) => {
   try {
+    const userId = req.user.userId;
     const Workout = require('../models/Workout');
     const Goal = require('../models/Goal');
     const AIMemory = require('../models/AIMemory');
-    
+
     const weekAgo = new Date();
     weekAgo.setDate(weekAgo.getDate() - 7);
 
-    // 1. Recent Gym Sessions with PRs
-    const workouts = await Workout.find({ 
-      userId: TEMP_USER_ID, 
-      date: { $gte: weekAgo } 
-    }).sort({ date: -1 }).limit(5);
-
-    // 2. Recent Defeated Bosses
-    const bosses = await Goal.find({ 
-      userId: TEMP_USER_ID, 
+    const workouts = await Workout.find({ userId, date: { $gte: weekAgo } }).sort({ date: -1 }).limit(5);
+    const bosses = await Goal.find({
+      userId,
       'boss.isDefeated': true,
-      updatedAt: { $gte: weekAgo } 
+      updatedAt: { $gte: weekAgo },
     }).sort({ updatedAt: -1 }).limit(5);
 
-    // 3. Recent AI Insights
-    const memory = await AIMemory.findOne({ userId: TEMP_USER_ID });
+    const memory = await AIMemory.findOne({ userId });
     const insights = memory?.weeklyInsights?.slice(-3) || [];
 
-    // Combine into a feed
     const feed = [
       ...workouts.map(w => ({
         type: 'gym',
         date: w.date,
         title: 'Workout Completed',
-        content: w.prsDetected?.length > 0 
+        content: w.prsDetected?.length > 0
           ? `Detected ${w.prsDetected.length} PRs! (${w.prsDetected.map(p => p.exerciseName).join(', ')})`
           : `${w.exercises.length} exercises logged. Total Volume: ${w.totalVolume}kg`,
-        icon: w.prsDetected?.length > 0 ? '🔥' : '🏋️'
+        icon: w.prsDetected?.length > 0 ? '🔥' : '🏋️',
       })),
       ...bosses.map(b => ({
         type: 'boss',
         date: b.updatedAt,
         title: 'Boss Defeated!',
         content: `You defeated ${b.boss.name} by completing "${b.title}"`,
-        icon: '⚔️'
+        icon: '⚔️',
       })),
       ...insights.map(i => ({
         type: 'insight',
         date: i.createdAt || weekAgo,
         title: 'New AI Insight',
         content: typeof i === 'string' ? i : i.description,
-        icon: '🧠'
-      }))
+        icon: '🧠',
+      })),
     ].sort((a, b) => new Date(b.date) - new Date(a.date));
 
     res.status(200).json(feed);
@@ -337,10 +321,9 @@ exports.getActivityFeed = async (req, res) => {
 exports.registerMobileDevice = async (req, res) => {
   try {
     const { deviceId, model, os } = req.body;
-    const user = await User.findOne({ userId: TEMP_USER_ID });
+    const user = await User.findOne({ userId: req.user.userId });
     if (!user) return res.status(404).json({ message: 'User not found' });
 
-    // Update or add device
     const deviceIndex = user.mobileDevices.findIndex(d => d.deviceId === deviceId);
     if (deviceIndex > -1) {
       user.mobileDevices[deviceIndex].lastActive = new Date();
@@ -358,7 +341,7 @@ exports.registerMobileDevice = async (req, res) => {
 exports.updateFCMToken = async (req, res) => {
   try {
     const { fcmToken } = req.body;
-    await User.findOneAndUpdate({ userId: TEMP_USER_ID }, { fcmToken });
+    await User.findOneAndUpdate({ userId: req.user.userId }, { fcmToken });
     res.status(200).json({ success: true, message: 'FCM Token updated' });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -369,11 +352,9 @@ exports.triggerMobileFocusLock = async (req, res) => {
   try {
     const { taskTitle } = req.body;
     const notificationService = require('../services/notificationService');
-    await notificationService.sendFocusLock(TEMP_USER_ID, taskTitle || 'Zen Focus Session');
+    await notificationService.sendFocusLock(req.user.userId, taskTitle || 'Zen Focus Session');
     res.status(200).json({ success: true, message: 'Focus lock signal sent to mobile' });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
-
-

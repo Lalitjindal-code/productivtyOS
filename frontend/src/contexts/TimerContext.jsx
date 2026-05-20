@@ -75,7 +75,13 @@ export const TimerProvider = ({ children }) => {
         duration: settings.work,
         type: 'work',
         distractionsLog: distractions.map(d => ({ description: d }))
-      }).catch(console.error);
+      })
+      .then(() => {
+        if (window.queryClient) {
+          window.queryClient.invalidateQueries({ queryKey: ['pomodoroStats'] });
+        }
+      })
+      .catch(console.error);
       setDistractions([]);
 
       if (newCycleCount % settings.longBreakInterval === 0) {

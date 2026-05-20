@@ -12,6 +12,7 @@ const memoryRoutes = require('./routes/memoryRoutes');
 const journalRoutes = require('./routes/journalRoutes');
 const aiRoutes = require('./routes/ai');
 const gymRoutes = require('./routes/gymRoutes');
+const authRoutes = require('./routes/authRoutes');
 
 const app = express();
 
@@ -20,17 +21,20 @@ app.get('/health', (req, res) => res.send('OK'));
 app.use(cors());
 app.use(helmet());
 app.use(express.json());
+const auth = require('./middleware/auth');
+
 app.get('/test', (req, res) => res.send('test'));
 
 app.get('/api/user/feed', (req, res) => res.json({ message: 'Direct feed works' }));
-app.use('/api/user', userRoutes);
-app.use('/api/gym', gymRoutes);
-app.use('/api/tasks', taskRoutes);
-app.use('/api/goals', goalRoutes);
-app.use('/api/pomodoro', pomodoroRoutes);
-app.use('/api/rage', rageRoutes);
-app.use('/api/memory', memoryRoutes);
-app.use('/api/journal', journalRoutes);
-app.use('/api/ai', aiRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/user', auth, userRoutes);
+app.use('/api/gym', auth, gymRoutes);
+app.use('/api/tasks', auth, taskRoutes);
+app.use('/api/goals', auth, goalRoutes);
+app.use('/api/pomodoro', auth, pomodoroRoutes);
+app.use('/api/rage', auth, rageRoutes);
+app.use('/api/memory', auth, memoryRoutes);
+app.use('/api/journal', auth, journalRoutes);
+app.use('/api/ai', auth, aiRoutes);
 
 module.exports = app;

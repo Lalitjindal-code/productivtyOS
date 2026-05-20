@@ -1,8 +1,6 @@
 const Journal = require('../models/Journal');
 const aiService = require('../services/aiService');
 
-const TEMP_USER_ID = 'user_mvp_1';
-
 const MOOD_MAP = {
   1: { emoji: '😭', label: 'Awful' },
   2: { emoji: '😕', label: 'Meh' },
@@ -11,18 +9,16 @@ const MOOD_MAP = {
   5: { emoji: '🔥', label: 'Amazing' },
 };
 
-// Normalise a JS Date to midnight UTC for a given local date string (YYYY-MM-DD)
 const toMidnightUTC = (dateStr) => {
   const d = new Date(dateStr);
   d.setUTCHours(0, 0, 0, 0);
   return d;
 };
 
-// GET /api/journal — list entries, newest first (paginated)
 exports.getEntries = async (req, res) => {
   try {
     const { page = 1, limit = 20, mood, tag, search, type = 'daily' } = req.query;
-    const query = { userId: TEMP_USER_ID, type };
+    const query = { userId: req.user.userId, type };
     if (mood) query['mood.score'] = Number(mood);
     if (tag) query.tags = tag;
     if (search) {
@@ -46,18 +42,16 @@ exports.getEntries = async (req, res) => {
   }
 };
 
-// GET /api/journal/today — get today's entry if exists
 exports.getTodayEntry = async (req, res) => {
   try {
     const today = toMidnightUTC(new Date().toISOString().split('T')[0]);
-    const entry = await Journal.findOne({ userId: TEMP_USER_ID, date: today, type: 'daily' });
+    const entry = await Journal.findOne({ userId: req.user.userId, date: today, type: 'daily' });
     return res.json({ entry });
   } catch (err) {
     return res.status(500).json({ message: err.message });
   }
 };
 
-// GET /api/journal/on-this-day — memories from 1yr, 6m, 3m ago
 exports.getOnThisDay = async (req, res) => {
   try {
     const now = new Date();
@@ -73,7 +67,7 @@ exports.getOnThisDay = async (req, res) => {
         past.setMonth(past.getMonth() - months);
         const dateStr = past.toISOString().split('T')[0];
         const d = toMidnightUTC(dateStr);
-        const entry = await Journal.findOne({ userId: TEMP_USER_ID, date: d, type: 'daily' });
+        const entry = await Journal.findOne({ userId: req.user.userId, date: d, type: 'daily' });
         return entry ? { label, entry } : null;
       }),
     );
@@ -84,9 +78,9 @@ exports.getOnThisDay = async (req, res) => {
   }
 };
 
-// POST /api/journal — create or update today's entry (upsert by date)
 exports.upsertEntry = async (req, res) => {
   try {
+    const userId = req.user.userId;
     const { date, mood, achieved, struggled, intention, freeText, tags } = req.body;
     if (!date || !mood?.score) {
       return res.status(400).json({ message: 'date and mood.score are required' });
@@ -102,43 +96,41 @@ exports.upsertEntry = async (req, res) => {
     const entryDate = toMidnightUTC(date);
 
     const entry = await Journal.findOneAndUpdate(
-      { userId: TEMP_USER_ID, date: entryDate, type: 'daily' },
+      { userId, date: entryDate, type: 'daily' },
       { $set: { mood: moodData, achieved, struggled, intention, freeText, tags: tags || [] } },
       { new: true, upsert: true, runValidators: true },
     );
 
-    // Award XP for journaling (10 XP per entry)
-    const rpgResult = await require('../services/rpgService').updateUserXP(TEMP_USER_ID, 10);
+    const rpgResult = await require('../services/rpgService').updateUserXP(userId, 10);
 
-    return res.status(200).json({ 
-      entry, 
+    return res.status(200).json({
+      entry,
       xpGained: 10,
-      leveledUp: rpgResult?.leveledUp || false 
+      leveledUp: rpgResult?.leveledUp || false,
     });
   } catch (err) {
     return res.status(400).json({ message: err.message });
   }
 };
 
-// DELETE /api/journal/:id — delete an entry
 exports.deleteEntry = async (req, res) => {
   try {
-    await Journal.findOneAndDelete({ _id: req.params.id, userId: TEMP_USER_ID });
+    await Journal.findOneAndDelete({ _id: req.params.id, userId: req.user.userId });
     return res.json({ message: 'Deleted' });
   } catch (err) {
     return res.status(500).json({ message: err.message });
   }
 };
 
-// POST /api/journal/summary/generate — AI monthly summary for previous month
 exports.generateMonthlySummary = async (req, res) => {
   try {
+    const userId = req.user.userId;
     const now = new Date();
     const monthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const monthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
 
     const entries = await Journal.find({
-      userId: TEMP_USER_ID,
+      userId,
       type: 'daily',
       date: { $gte: monthStart, $lte: monthEnd },
     });
@@ -164,13 +156,8 @@ exports.generateMonthlySummary = async (req, res) => {
 
     const avgMoodRounded = Math.max(1, Math.min(5, Math.round(Number(avgMood))));
 
-    // Save as ai_monthly_summary type
     const summaryEntry = await Journal.findOneAndUpdate(
-      {
-        userId: TEMP_USER_ID,
-        type: 'ai_monthly_summary',
-        date: monthStart,
-      },
+      { userId, type: 'ai_monthly_summary', date: monthStart },
       { $set: { aiSummary: summary, mood: { score: avgMoodRounded, ...MOOD_MAP[avgMoodRounded] } } },
       { new: true, upsert: true },
     );
@@ -180,4 +167,3 @@ exports.generateMonthlySummary = async (req, res) => {
     return res.status(500).json({ message: err.message });
   }
 };
-

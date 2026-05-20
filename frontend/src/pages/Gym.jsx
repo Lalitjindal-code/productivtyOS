@@ -22,7 +22,7 @@ export const Gym = () => {
   const [isPlanOpen, setIsPlanOpen] = useState(false);
   const [selectedExercise, setSelectedExercise] = useState(null);
 
-  const { data: workouts, isLoading } = useQuery({
+  const { data: workouts, isLoading: isWorkoutsLoading } = useQuery({
     queryKey: ['workouts'],
     queryFn: getWorkouts
   });
@@ -40,20 +40,142 @@ export const Gym = () => {
   const today = format(new Date(), 'EEEE');
   const todayTarget = plan ? plan[today] : 'Rest';
 
-  const muscleData = [
-    { subject: 'Chest', A: 80, fullMark: 100 },
-    { subject: 'Back', A: 70, fullMark: 100 },
-    { subject: 'Shoulders', A: 60, fullMark: 100 },
-    { subject: 'Legs', A: 50, fullMark: 100 },
-    { subject: 'Arms', A: 85, fullMark: 100 },
-    { subject: 'Core', A: 40, fullMark: 100 },
-  ];
+  // Dynamic calculations:
+  const getMuscleData = () => {
+    const categories = { Chest: 0, Back: 0, Shoulders: 0, Legs: 0, Arms: 0, Core: 0 };
+    if (workouts && Array.isArray(workouts)) {
+      workouts.forEach(w => {
+        w.exercises?.forEach(ex => {
+          const fullEx = allExercises?.find(e => e._id === ex.exerciseId || e.name === ex.name);
+          const cat = fullEx?.category || 'Chest';
+          if (categories[cat] !== undefined) {
+            categories[cat] += ex.sets?.length || 0;
+          }
+        });
+      });
+    }
+    const maxVal = Math.max(...Object.values(categories), 10);
+    return Object.entries(categories).map(([subject, val]) => ({
+      subject,
+      A: Math.round((val / maxVal) * 100),
+      fullMark: 100
+    }));
+  };
 
-  if (isLoading) return (
+  const getMonthlyVolume = () => {
+    if (!workouts || !Array.isArray(workouts)) return '0.0kg';
+    const now = new Date();
+    const curMonth = now.getMonth();
+    const curYear = now.getFullYear();
+    const vol = workouts
+      .filter(w => {
+        const d = new Date(w.date);
+        return d.getMonth() === curMonth && d.getFullYear() === curYear;
+      })
+      .reduce((acc, curr) => acc + (curr.totalVolume || 0), 0);
+    return vol >= 1000 ? `${(vol / 1000).toFixed(1)}t` : `${vol}kg`;
+  };
+
+  const getMonthlySessions = () => {
+    if (!workouts || !Array.isArray(workouts)) return 0;
+    const now = new Date();
+    const curMonth = now.getMonth();
+    const curYear = now.getFullYear();
+    return workouts.filter(w => {
+      const d = new Date(w.date);
+      return d.getMonth() === curMonth && d.getFullYear() === curYear;
+    }).length;
+  };
+
+  const getMaxWeightPR = () => {
+    if (!workouts || !Array.isArray(workouts)) return { value: '0kg', sub: 'No lifts yet' };
+    let maxWeight = 0;
+    let maxExercise = 'No lifts yet';
+    workouts.forEach(w => {
+      w.exercises?.forEach(ex => {
+        ex.sets?.forEach(s => {
+          if (s.weight > maxWeight) {
+            maxWeight = s.weight;
+            maxExercise = ex.name || 'Lift';
+          }
+        });
+      });
+    });
+    return { value: `${maxWeight}kg`, sub: maxExercise };
+  };
+
+  const getWeeklyVolume = () => {
+    if (!workouts || !Array.isArray(workouts)) return { value: '0kg', sub: 'No lifts this week' };
+    const now = new Date();
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+
+    const thisWeekVol = workouts
+      .filter(w => new Date(w.date) >= sevenDaysAgo)
+      .reduce((acc, curr) => acc + (curr.totalVolume || 0), 0);
+
+    const lastWeekVol = workouts
+      .filter(w => {
+        const d = new Date(w.date);
+        return d >= fourteenDaysAgo && d < sevenDaysAgo;
+      })
+      .reduce((acc, curr) => acc + (curr.totalVolume || 0), 0);
+
+    let subText = 'First week of lifting';
+    if (lastWeekVol > 0) {
+      const diff = ((thisWeekVol - lastWeekVol) / lastWeekVol) * 100;
+      subText = `${diff >= 0 ? '+' : ''}${diff.toFixed(0)}% from last week`;
+    }
+    return {
+      value: thisWeekVol >= 1000 ? `${(thisWeekVol / 1000).toFixed(1)}t` : `${thisWeekVol}kg`,
+      sub: subText
+    };
+  };
+
+  const getConsistency = () => {
+    if (!workouts || !Array.isArray(workouts)) return { value: '0 days', sub: 'Weekly streak' };
+    const dates = workouts.map(w => {
+      const d = new Date(w.date);
+      d.setHours(0, 0, 0, 0);
+      return d.getTime();
+    });
+    const uniqueDates = [...new Set(dates)].sort((a, b) => b - a);
+
+    let streak = 0;
+    const todayMidnight = new Date();
+    todayMidnight.setHours(0, 0, 0, 0);
+
+    let checkDate = todayMidnight.getTime();
+    if (!uniqueDates.includes(checkDate)) {
+      const yesterday = new Date(todayMidnight);
+      yesterday.setDate(yesterday.getDate() - 1);
+      checkDate = yesterday.getTime();
+    }
+
+    while (uniqueDates.includes(checkDate)) {
+      streak++;
+      const nextCheck = new Date(checkDate);
+      nextCheck.setDate(nextCheck.getDate() - 1);
+      checkDate = nextCheck.getTime();
+    }
+    return {
+      value: `${streak} Day${streak !== 1 ? 's' : ''}`,
+      sub: streak > 0 ? 'Active workout streak' : 'Log a workout today'
+    };
+  };
+
+  if (isWorkoutsLoading) return (
     <div className="flex items-center justify-center h-full">
       <Loader2 className="animate-spin text-lime-500" size={32} />
     </div>
   );
+
+  const muscleData = getMuscleData();
+  const monthlyVol = getMonthlyVolume();
+  const monthlySessions = getMonthlySessions();
+  const maxWeightPR = getMaxWeightPR();
+  const weeklyVol = getWeeklyVolume();
+  const consistency = getConsistency();
 
   return (
     <div className="h-full overflow-y-auto px-6 py-8 custom-scrollbar">
@@ -124,12 +246,12 @@ export const Gym = () => {
             
             <div className="mt-6 flex justify-center gap-6">
               <div className="text-center">
-                <div className="text-2xl font-black text-white">12.4t</div>
+                <div className="text-2xl font-black text-white">{monthlyVol}</div>
                 <div className="text-[10px] font-bold text-neutral-500 uppercase tracking-tighter">Monthly Vol</div>
               </div>
               <div className="w-px h-8 bg-white/5 mt-2"></div>
               <div className="text-center">
-                <div className="text-2xl font-black text-lime-500">14</div>
+                <div className="text-2xl font-black text-lime-500">{monthlySessions}</div>
                 <div className="text-[10px] font-bold text-neutral-500 uppercase tracking-tighter">Sessions</div>
               </div>
             </div>
@@ -229,9 +351,9 @@ export const Gym = () => {
         {/* Quick Insights Section */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {[
-            { title: 'Current PR', value: '140kg', sub: 'Deadlift', icon: <Sparkles className="text-yellow-400" /> },
-            { title: 'Weekly Volume', value: '3,240kg', sub: '+12% from last week', icon: <TrendingUp className="text-blue-400" /> },
-            { title: 'Consistency', value: '4 days', sub: 'Current weekly streak', icon: <Activity className="text-lime-400" /> },
+            { title: 'Current PR', value: maxWeightPR.value, sub: maxWeightPR.sub, icon: <Sparkles className="text-yellow-400" /> },
+            { title: 'Weekly Volume', value: weeklyVol.value, sub: weeklyVol.sub, icon: <TrendingUp className="text-blue-400" /> },
+            { title: 'Consistency', value: consistency.value, sub: consistency.sub, icon: <Activity className="text-lime-400" /> },
           ].map((stat, i) => (
             <motion.div 
               key={i}

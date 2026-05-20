@@ -3,6 +3,7 @@ import { Target, Loader2 } from 'lucide-react';
 import { ButtonPrimary } from '../components/common/Button';
 import { GoalCard } from '../components/features/goals/GoalCard';
 import { GoalModal } from '../components/features/goals/GoalModal';
+import { EmptyState } from '../components/common/EmptyState';
 import { useGoals } from '../hooks/useGoals';
 
 export const Goals = () => {

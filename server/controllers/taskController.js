@@ -2,12 +2,9 @@ const Task = require('../models/Task');
 const { touchStreak } = require('./userController');
 const rpgService = require('../services/rpgService');
 
-// MVP Hardcoded User ID
-const TEMP_USER_ID = 'user_mvp_1';
-
 exports.getTasks = async (req, res) => {
   try {
-    const tasks = await Task.find({ userId: TEMP_USER_ID }).sort({ createdAt: -1 });
+    const tasks = await Task.find({ userId: req.user.userId }).sort({ createdAt: -1 });
     res.status(200).json(tasks);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -18,7 +15,7 @@ exports.createTask = async (req, res) => {
   try {
     const newTask = new Task({
       ...req.body,
-      userId: TEMP_USER_ID
+      userId: req.user.userId,
     });
     const savedTask = await newTask.save();
     res.status(201).json(savedTask);
@@ -30,7 +27,7 @@ exports.createTask = async (req, res) => {
 exports.updateTask = async (req, res) => {
   try {
     const updatedTask = await Task.findOneAndUpdate(
-      { _id: req.params.id, userId: TEMP_USER_ID },
+      { _id: req.params.id, userId: req.user.userId },
       req.body,
       { new: true, runValidators: true }
     );
@@ -45,7 +42,7 @@ exports.updateTask = async (req, res) => {
 
 exports.deleteTask = async (req, res) => {
   try {
-    const deletedTask = await Task.findOneAndDelete({ _id: req.params.id, userId: TEMP_USER_ID });
+    const deletedTask = await Task.findOneAndDelete({ _id: req.params.id, userId: req.user.userId });
     if (!deletedTask) {
       return res.status(404).json({ message: 'Task not found' });
     }
@@ -55,19 +52,19 @@ exports.deleteTask = async (req, res) => {
   }
 };
 
-// Specialized endpoints for phase features
 exports.completeTask = async (req, res) => {
   try {
-    const task = await Task.findOne({ _id: req.params.id, userId: TEMP_USER_ID });
+    const userId = req.user.userId;
+    const task = await Task.findOne({ _id: req.params.id, userId });
     if (!task) return res.status(404).json({ message: 'Task not found' });
-    
+
     task.status = 'completed';
     task.completedAt = new Date();
-    
+
     // RPG XP Calculation
     const xpGain = rpgService.calculateXPGain(task);
     task.xpEarned = xpGain;
-    
+
     // Redeem from Wall of Shame if this was a penalty task
     if (task.penaltyTaskFor) {
       const originalTask = await Task.findById(task.penaltyTaskFor);
@@ -78,15 +75,15 @@ exports.completeTask = async (req, res) => {
     }
 
     await task.save();
-    
+
     // Update User XP and Level
-    const { user, leveledUp } = await rpgService.updateUserXP(TEMP_USER_ID, xpGain);
-    
+    const { user, leveledUp } = await rpgService.updateUserXP(userId, xpGain);
+
     // Check achievements
-    const newAchievements = await rpgService.checkAchievements(TEMP_USER_ID, { task });
+    const newAchievements = await rpgService.checkAchievements(userId, { task });
 
     // Touch streak on every task completion
-    touchStreak().catch(console.error);
+    touchStreak(userId).catch(console.error);
 
     res.status(200).json({
       task,
@@ -94,8 +91,8 @@ exports.completeTask = async (req, res) => {
         xpGain,
         leveledUp,
         currentLevel: user.rpgStats.level,
-        newAchievements
-      }
+        newAchievements,
+      },
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -104,35 +101,35 @@ exports.completeTask = async (req, res) => {
 
 exports.failTask = async (req, res) => {
   try {
-    const task = await Task.findOne({ _id: req.params.id, userId: TEMP_USER_ID });
+    const userId = req.user.userId;
+    const task = await Task.findOne({ _id: req.params.id, userId });
     if (!task) return res.status(404).json({ message: 'Task not found' });
-    
+
     task.status = 'failed';
     task.failedAt = new Date();
     task.wallOfShame = true;
-    
+
     await task.save();
 
     // HP Loss on failure
-    const user = await rpgService.updateUserHP(TEMP_USER_ID, 10);
+    const user = await rpgService.updateUserHP(userId, 10);
 
     res.status(200).json({
       task,
       rpgUpdate: {
-        hpRemaining: user.rpgStats.hp
-      }
+        hpRemaining: user.rpgStats.hp,
+      },
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-// Subtask features
 exports.addSubtask = async (req, res) => {
   try {
-    const task = await Task.findOne({ _id: req.params.id, userId: TEMP_USER_ID });
+    const task = await Task.findOne({ _id: req.params.id, userId: req.user.userId });
     if (!task) return res.status(404).json({ message: 'Task not found' });
-    
+
     if (!req.body.title) return res.status(400).json({ message: 'Subtask title is required' });
 
     task.subtasks.push({ title: req.body.title, completed: false });
@@ -145,9 +142,9 @@ exports.addSubtask = async (req, res) => {
 
 exports.toggleSubtask = async (req, res) => {
   try {
-    const task = await Task.findOne({ _id: req.params.id, userId: TEMP_USER_ID });
+    const task = await Task.findOne({ _id: req.params.id, userId: req.user.userId });
     if (!task) return res.status(404).json({ message: 'Task not found' });
-    
+
     const subtask = task.subtasks.id(req.params.subtaskId);
     if (!subtask) return res.status(404).json({ message: 'Subtask not found' });
 
@@ -161,9 +158,9 @@ exports.toggleSubtask = async (req, res) => {
 
 exports.deleteSubtask = async (req, res) => {
   try {
-    const task = await Task.findOne({ _id: req.params.id, userId: TEMP_USER_ID });
+    const task = await Task.findOne({ _id: req.params.id, userId: req.user.userId });
     if (!task) return res.status(404).json({ message: 'Task not found' });
-    
+
     task.subtasks.pull({ _id: req.params.subtaskId });
     await task.save();
     res.status(200).json(task);

@@ -2,6 +2,8 @@ const mongoose = require('mongoose');
 
 const userSchema = new mongoose.Schema({
   userId: { type: String, required: true, unique: true },
+  email: { type: String, required: true, unique: true, lowercase: true, trim: true },
+  password: { type: String, required: true, select: false },
   displayName: { type: String, default: 'Productivity Warrior' },
   avatarUrl: { type: String, default: '' },
   timezone: { type: String, default: 'Asia/Kolkata' },

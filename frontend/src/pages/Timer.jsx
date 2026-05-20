@@ -6,8 +6,10 @@ import { AmbientPlayer } from '../components/features/timer/AmbientPlayer';
 import { ZenOverlay } from '../components/features/timer/ZenOverlay';
 import { aiService } from '../services/aiService';
 import { useMusic } from '../contexts/MusicContext';
-import { api } from '../services/api';
+import api from '../services/api';
 import { AnimatePresence } from 'framer-motion';
+import { useQuery } from '@tanstack/react-query';
+import { pomodoroService } from '../services/pomodoroService';
 
 // --- Circular Progress Ring ---
 const TimerRing = ({ progress, phase, timeLeft, totalDuration }) => {
@@ -164,6 +166,12 @@ export const Timer = () => {
   const [isFocusMode, setIsFocusMode] = useState(false);
   const { togglePlaylist, setIsPlaying } = useMusic();
   const containerRef = useRef(null);
+
+  // Fetch daily stats dynamically
+  const { data: dailyStats } = useQuery({
+    queryKey: ['pomodoroStats'],
+    queryFn: pomodoroService.getDailyStats
+  });
 
   // --- AI DJ: Auto-switch music based on task ---
   useEffect(() => {
@@ -364,6 +372,58 @@ export const Timer = () => {
 
         <div className="flex flex-col gap-6">
           <AmbientPlayer />
+
+          {/* Dynamic Daily Focus Stats Panel */}
+          <div className="p-6 bg-surface/85 backdrop-blur-md border border-white/10 rounded-2xl shadow-xl">
+            <h3 className="text-xs font-black text-neutral-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+              <Zap size={16} className="text-primary-400 animate-pulse" /> Focus Metrics Today
+            </h3>
+
+            <div className="grid grid-cols-2 gap-4 mb-5">
+              <div className="bg-void/50 border border-white/5 p-4 rounded-xl text-center">
+                <div className="text-3xl font-black text-white font-mono">{dailyStats?.completedPomodoros || 0}</div>
+                <div className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider mt-1">Pomodoros</div>
+              </div>
+              <div className="bg-void/50 border border-white/5 p-4 rounded-xl text-center">
+                <div className="text-3xl font-black text-primary-400 font-mono">{dailyStats?.totalFocusMinutes || 0}m</div>
+                <div className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider mt-1">Focus Time</div>
+              </div>
+            </div>
+
+            {/* Target Progress Bar */}
+            <div className="mb-4">
+              <div className="flex justify-between text-xs font-semibold mb-1">
+                <span className="text-neutral-400">Daily Target Progress</span>
+                <span className="text-neutral-200">{Math.min(100, Math.round(((dailyStats?.totalFocusMinutes || 0) / 120) * 100))}%</span>
+              </div>
+              <div className="w-full bg-void rounded-full h-2 overflow-hidden border border-white/5">
+                <div 
+                  className="bg-gradient-to-r from-primary-500 to-primary-300 h-full rounded-full transition-all duration-500" 
+                  style={{ width: `${Math.min(100, ((dailyStats?.totalFocusMinutes || 0) / 120) * 100)}%` }}
+                />
+              </div>
+              <div className="text-[10px] text-neutral-500 mt-1">Goal: 120 minutes focus daily</div>
+            </div>
+            
+            {/* Recent Sessions */}
+            {dailyStats?.sessions?.length > 0 && (
+              <div className="mt-4 border-t border-white/5 pt-4">
+                <p className="font-body text-[10px] text-neutral-500 mb-2 uppercase tracking-widest font-bold">Focus History (Today)</p>
+                <div className="space-y-2 max-h-40 overflow-y-auto pr-1 custom-scrollbar">
+                  {dailyStats.sessions.map((session, i) => (
+                    <div key={session._id || i} className="flex justify-between items-center text-xs bg-void/30 p-2.5 rounded-lg border border-white/5">
+                      <span className="font-medium text-neutral-300">
+                        {session.type === 'work' ? '🔥 Focus Session' : '☕ Break Session'}
+                      </span>
+                      <span className="font-mono text-neutral-500 text-[10px]">
+                        {session.duration} min | {new Date(session.completedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
           
           {distractions.length > 0 && (
             <div className="mt-4">

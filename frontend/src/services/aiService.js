@@ -10,7 +10,7 @@ const aiClient = axios.create({
 });
 
 aiClient.interceptors.request.use((config) => {
-  const token = typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null;
+  const token = typeof localStorage !== 'undefined' ? localStorage.getItem('pos_token') : null;
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }

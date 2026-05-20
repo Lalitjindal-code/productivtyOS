@@ -1,28 +1,41 @@
 const jwt = require('jsonwebtoken');
 
+const JWT_SECRET = process.env.JWT_SECRET || 'your_super_secret_jwt_key_change_in_production';
+
 /**
- * Authentication Middleware
- * Decodes JWT and attaches user to request
+ * Real Authentication Middleware
+ * Verifies JWT token and attaches decoded user to req.user
+ * Returns 401 if token is missing or invalid — no more fallback to fake user
  */
 module.exports = (req, res, next) => {
   const authHeader = req.headers.authorization;
-  
+
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    // Fallback for MVP if no token is provided
-    req.user = { userId: 'user_mvp_1' };
-    return next();
+    return res.status(401).json({
+      success: false,
+      error: {
+        code: 'UNAUTHORIZED',
+        message: 'Login karein. Authorization token required hai.',
+      },
+    });
   }
 
   const token = authHeader.split(' ')[1];
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_super_secret_jwt_key');
-    req.user = decoded;
+    const decoded = jwt.verify(token, JWT_SECRET);
+    req.user = decoded; // { userId, email, iat, exp }
     next();
   } catch (error) {
-    // Still fallback for MVP instead of 401
-    req.user = { userId: 'user_mvp_1' };
-    next();
-    // In a real app: return res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Invalid token' } });
+    const isExpired = error.name === 'TokenExpiredError';
+    return res.status(401).json({
+      success: false,
+      error: {
+        code: isExpired ? 'TOKEN_EXPIRED' : 'INVALID_TOKEN',
+        message: isExpired
+          ? 'Session expire ho gayi. Dobara login karein.'
+          : 'Invalid token. Login karein.',
+      },
+    });
   }
 };
