@@ -17,7 +17,7 @@ class DioClient {
     // Auth interceptor — attaches JWT token from secure storage
     dio.interceptors.add(_AuthInterceptor(_storage));
 
-    // Logging (debug only)
+    // Logging (errors only)
     dio.interceptors.add(LogInterceptor(
       requestBody: false,
       responseBody: false,
@@ -55,6 +55,3 @@ class _AuthInterceptor extends Interceptor {
     handler.next(err);
   }
 }
-
-/// Singleton provider so all repos share the same Dio instance.
-final dioProvider = Dio Function() _dioInstance = DioClient.getInstance;

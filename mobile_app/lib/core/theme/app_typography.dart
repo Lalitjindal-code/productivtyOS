@@ -59,6 +59,11 @@ class AppTypography {
     color: AppColors.textMuted,
     letterSpacing: 1.5,
   );
+  static TextStyle labelSm = GoogleFonts.outfit(
+    fontSize: 8, fontWeight: FontWeight.w600,
+    color: AppColors.textMuted,
+    letterSpacing: 1.2,
+  );
 
   // === MONO — JetBrains Mono ===
   static TextStyle monoXl = GoogleFonts.jetBrainsMono(

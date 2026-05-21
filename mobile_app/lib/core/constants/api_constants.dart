@@ -1,7 +1,7 @@
 class ApiConstants {
-  // Android emulator: 10.0.2.2 maps to host's localhost
-  // Physical device: change to your LAN IP, e.g. 'http://192.168.1.x:5002/api'
-  static const String baseUrl = 'http://10.0.2.2:5002/api';
+  // Default base URL. Set to http://127.0.0.1:5002/api for adb reverse on physical Android devices.
+  // Use http://10.0.2.2:5002/api for Android Emulator.
+  static const String baseUrl = 'http://127.0.0.1:5002/api';
 
   // Auth
   static const String login    = '/auth/login';
