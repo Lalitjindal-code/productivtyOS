@@ -9,6 +9,7 @@ import { useNotifications } from '../../../contexts/NotificationContext';
 import { RoastModal } from '../rage/RoastModal';
 import { format, isPast, isToday } from 'date-fns';
 import api from '../../../services/api';
+import toast from 'react-hot-toast';
 
 export const TaskCard = ({ task }) => {
   const { triggerXP } = useNotifications();
@@ -25,9 +26,15 @@ export const TaskCard = ({ task }) => {
   // Overdue Detection
   const isOverdue = !isCompleted && !isFailed && task.deadline && isPast(new Date(task.deadline)) && !isToday(new Date(task.deadline));
   
-  const handleComplete = () => completeTask(task._id);
+  const handleComplete = () => {
+    completeTask(task._id);
+    toast.success(`✅ "${task.title}" completed!${task.xpEarned ? ` +${task.xpEarned} XP` : ''}`, {
+      duration: 3000,
+    });
+  };
   const handleFail = async () => {
     failTask(task._id);
+    toast.error(`❌ "${task.title}" marked as failed.`);
     // Trigger roast generation after short delay
     setTimeout(async () => {
       try {

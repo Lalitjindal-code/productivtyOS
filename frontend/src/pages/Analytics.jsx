@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, memo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Brain, Sparkles, ThumbsDown, ThumbsUp, Plus, Trash2,
@@ -17,7 +17,7 @@ const fetchMemory = async () => {
 };
 
 // ---- Insight Card ----
-const InsightCard = ({ insight, onFlag }) => {
+const InsightCard = memo(({ insight, onFlag }) => {
   const typeConfig = {
     positive: { color: 'text-green-400', bg: 'bg-green-400/10', border: 'border-green-400/20', icon: TrendingUp },
     warning: { color: 'text-red-400', bg: 'bg-red-400/10', border: 'border-red-500/20', icon: AlertTriangle },
@@ -54,10 +54,10 @@ const InsightCard = ({ insight, onFlag }) => {
       </p>
     </div>
   );
-};
+});
 
 // ---- DNA Report ----
-const DNAReport = ({ dna, onGenerate, isGenerating }) => {
+const DNAReport = memo(({ dna, onGenerate, isGenerating }) => {
   if (!dna || !dna.generatedAt) {
     return (
       <Card className="p-12 text-center">
@@ -147,7 +147,7 @@ const DNAReport = ({ dna, onGenerate, isGenerating }) => {
       </Card>
     </div>
   );
-};
+});
 
 // ---- Ask Brain Chat ----
 const AskBrainChat = () => {

@@ -10,6 +10,7 @@ import { EntryForm } from '../components/features/journal/EntryForm';
 import { EntryCard } from '../components/features/journal/EntryCard';
 import { Card } from '../components/common/Card';
 import { useNotifications } from '../contexts/NotificationContext';
+import toast from 'react-hot-toast';
 
 // ---- On This Day Banner ----
 const OnThisDayBanner = ({ memories }) => {
@@ -61,36 +62,20 @@ export const Journal = () => {
       setShowForm(false);
       setEditEntry(null);
       
-      addNotification({
-        title: 'Reflection Saved',
-        message: `Gained 10 XP for journaling.`,
-        type: 'success'
-      });
+      toast.success('📔 Reflection saved! +10 XP');
 
       if (result.leveledUp) {
-        addNotification({
-          title: 'Level Up!',
-          message: 'Your self-reflection has increased your level.',
-          type: 'level_up'
-        });
+        setTimeout(() => toast.success('⚡ Level Up! Keep journaling!', { duration: 5000 }), 500);
       }
     } catch (err) {
-      addNotification({
-        title: 'Error Saving',
-        message: err.message,
-        type: 'error'
-      });
+      toast.error('Failed to save reflection. Try again.');
     }
   };
 
   const handleDelete = (id) => {
     if (window.confirm('Are you sure you want to purge this memory?')) {
       deleteEntry.mutate(id);
-      addNotification({
-        title: 'Entry Deleted',
-        message: 'The memory has been removed.',
-        type: 'error'
-      });
+      toast.error('Memory purged.');
     }
   };
 

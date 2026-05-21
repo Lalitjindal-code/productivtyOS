@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   Save, X, Hash, MessageSquare, 
-  Trophy, AlertCircle, Rocket 
+  Trophy, AlertCircle, Rocket, Calendar, CheckCircle, Loader2
 } from 'lucide-react';
 import { MoodSelector } from './MoodSelector';
 
@@ -16,6 +16,9 @@ export const EntryForm = ({ existing, onSave, onCancel }) => {
     tags: []
   });
   const [tagInput, setTagInput] = useState('');
+  const [autoSaveStatus, setAutoSaveStatus] = useState(null); // null | 'saving' | 'saved'
+  const autoSaveTimer = useRef(null);
+  const isExisting = !!existing?._id;
 
   useEffect(() => {
     if (existing) {
@@ -26,8 +29,33 @@ export const EntryForm = ({ existing, onSave, onCancel }) => {
     }
   }, [existing]);
 
+  // Auto-save: only for existing entries being edited
+  const triggerAutoSave = useCallback((data) => {
+    if (!isExisting) return;
+    clearTimeout(autoSaveTimer.current);
+    setAutoSaveStatus('saving');
+    autoSaveTimer.current = setTimeout(() => {
+      onSave(data);
+      setAutoSaveStatus('saved');
+      setTimeout(() => setAutoSaveStatus(null), 2000);
+    }, 2000);
+  }, [isExisting, onSave]);
+
+  // Cleanup timer on unmount
+  useEffect(() => () => clearTimeout(autoSaveTimer.current), []);
+
+  const updateField = (updates) => {
+    setFormData(prev => {
+      const next = { ...prev, ...updates };
+      triggerAutoSave(next);
+      return next;
+    });
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
+    clearTimeout(autoSaveTimer.current);
+    setAutoSaveStatus(null);
     onSave(formData);
   };
 
@@ -45,6 +73,16 @@ export const EntryForm = ({ existing, onSave, onCancel }) => {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
+      {/* Auto-save indicator */}
+      {isExisting && autoSaveStatus && (
+        <div className="flex items-center justify-end gap-1.5 text-xs font-body">
+          {autoSaveStatus === 'saving' ? (
+            <><Loader2 size={12} className="animate-spin text-neutral-500" /><span className="text-neutral-500">Saving...</span></>
+          ) : (
+            <><CheckCircle size={12} className="text-green-500" /><span className="text-green-500">Saved</span></>
+          )}
+        </div>
+      )}
       {/* Date & Mood Section */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div className="space-y-3">
@@ -54,7 +92,7 @@ export const EntryForm = ({ existing, onSave, onCancel }) => {
           <input
             type="date"
             value={formData.date}
-            onChange={e => setFormData(prev => ({ ...prev, date: e.target.value }))}
+            onChange={e => updateField({ date: e.target.value })}
             className="w-full bg-surface border border-white/10 rounded-xl px-4 py-3 text-neutral-100 font-body text-sm focus:outline-none focus:border-primary-400/50 transition-all"
           />
         </div>
@@ -64,7 +102,7 @@ export const EntryForm = ({ existing, onSave, onCancel }) => {
           </label>
           <MoodSelector 
             value={formData.mood.score} 
-            onChange={score => setFormData(prev => ({ ...prev, mood: { score } }))} 
+            onChange={score => updateField({ mood: { score } })} 
           />
         </div>
       </div>
@@ -77,7 +115,7 @@ export const EntryForm = ({ existing, onSave, onCancel }) => {
           </label>
           <textarea
             value={formData.achieved}
-            onChange={e => setFormData(prev => ({ ...prev, achieved: e.target.value }))}
+            onChange={e => updateField({ achieved: e.target.value })}
             placeholder="What move did you make that mattered?"
             rows={2}
             className="w-full bg-surface border border-white/10 rounded-xl px-4 py-3 text-neutral-100 font-body text-sm placeholder:text-neutral-700 focus:outline-none focus:border-green-500/30 transition-all resize-none"
@@ -90,7 +128,7 @@ export const EntryForm = ({ existing, onSave, onCancel }) => {
           </label>
           <textarea
             value={formData.struggled}
-            onChange={e => setFormData(prev => ({ ...prev, struggled: e.target.value }))}
+            onChange={e => updateField({ struggled: e.target.value })}
             placeholder="What slowed you down or triggered resistance?"
             rows={2}
             className="w-full bg-surface border border-white/10 rounded-xl px-4 py-3 text-neutral-100 font-body text-sm placeholder:text-neutral-700 focus:outline-none focus:border-orange-500/30 transition-all resize-none"
@@ -103,7 +141,7 @@ export const EntryForm = ({ existing, onSave, onCancel }) => {
           </label>
           <textarea
             value={formData.intention}
-            onChange={e => setFormData(prev => ({ ...prev, intention: e.target.value }))}
+            onChange={e => updateField({ intention: e.target.value })}
             placeholder="What is the one thing that must happen tomorrow?"
             rows={2}
             className="w-full bg-surface border border-white/10 rounded-xl px-4 py-3 text-neutral-100 font-body text-sm placeholder:text-neutral-700 focus:outline-none focus:border-primary-400/30 transition-all resize-none"
@@ -118,7 +156,7 @@ export const EntryForm = ({ existing, onSave, onCancel }) => {
         </label>
         <textarea
           value={formData.freeText}
-          onChange={e => setFormData(prev => ({ ...prev, freeText: e.target.value }))}
+          onChange={e => updateField({ freeText: e.target.value })}
           placeholder="Unfiltered thoughts, patterns, or mental models..."
           rows={5}
           className="w-full bg-surface border border-white/10 rounded-xl px-4 py-3 text-neutral-100 font-body text-sm placeholder:text-neutral-700 focus:outline-none focus:border-primary-400/30 transition-all"

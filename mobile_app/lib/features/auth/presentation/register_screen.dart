@@ -5,25 +5,29 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../data/auth_repository.dart';
 
-class LoginScreen extends ConsumerStatefulWidget {
-  const LoginScreen({super.key});
+class RegisterScreen extends ConsumerStatefulWidget {
+  const RegisterScreen({super.key});
 
   @override
-  ConsumerState<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<RegisterScreen> createState() => _RegisterScreenState();
 }
 
-class _LoginScreenState extends ConsumerState<LoginScreen> {
+class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _formKey      = GlobalKey<FormState>();
+  final _nameCtrl     = TextEditingController();
   final _emailCtrl    = TextEditingController();
   final _passwordCtrl = TextEditingController();
+  final _confirmCtrl  = TextEditingController();
   bool _loading       = false;
   bool _obscure       = true;
   String? _error;
 
   @override
   void dispose() {
+    _nameCtrl.dispose();
     _emailCtrl.dispose();
     _passwordCtrl.dispose();
+    _confirmCtrl.dispose();
     super.dispose();
   }
 
@@ -32,7 +36,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     setState(() { _loading = true; _error = null; });
 
     try {
-      await ref.read(authRepositoryProvider).login(
+      await ref.read(authRepositoryProvider).register(
+        _nameCtrl.text.trim(),
         _emailCtrl.text.trim(),
         _passwordCtrl.text,
       );
@@ -40,9 +45,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       if (mounted) context.go('/');
     } catch (e) {
       setState(() {
-        _error = e.toString().contains('401')
-            ? 'Invalid email or password.'
-            : 'Connection failed. Is the server running?';
+        _error = e.toString().contains('409')
+            ? 'An account with this email already exists.'
+            : 'Registration failed. Please try again.';
       });
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -55,33 +60,27 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       backgroundColor: AppColors.bgBase,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 48),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
           child: Form(
             key: _formKey,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SizedBox(height: 32),
-                // Logo / header
-                Row(
-                  children: [
-                    Container(
-                      width: 48, height: 48,
-                      decoration: BoxDecoration(
-                        color: AppColors.primaryGlow,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppColors.primary400.withValues(alpha: 0.4)),
-                      ),
-                      child: const Icon(Icons.bolt_rounded, color: AppColors.primary400, size: 28),
-                    ),
-                    const SizedBox(width: 12),
-                    Text('ProductivityOS', style: AppTypography.displaySm),
-                  ],
+                // Back button
+                GestureDetector(
+                  onTap: () => context.go('/auth/login'),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: AppColors.textSecondary),
+                      const SizedBox(width: 4),
+                      Text('Back to Login', style: AppTypography.bodySm.copyWith(color: AppColors.textSecondary)),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 48),
-                Text('Welcome back,', style: AppTypography.bodyMd.copyWith(color: AppColors.textSecondary)),
-                Text('Commander', style: AppTypography.displayMd),
-                const SizedBox(height: 40),
+                const SizedBox(height: 32),
+                Text('Create Account', style: AppTypography.displayMd),
+                Text('Begin your journey, Commander', style: AppTypography.bodyMd.copyWith(color: AppColors.textSecondary)),
+                const SizedBox(height: 36),
 
                 // Error banner
                 if (_error != null) ...[
@@ -98,9 +97,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   const SizedBox(height: 20),
                 ],
 
-                // Email
-                Text('Email', style: AppTypography.labelMd),
-                const SizedBox(height: 8),
+                _label('Display Name'),
+                TextFormField(
+                  controller: _nameCtrl,
+                  style: AppTypography.bodyLg,
+                  decoration: const InputDecoration(
+                    hintText: 'Commander Zero',
+                    prefixIcon: Icon(Icons.person_outline_rounded),
+                  ),
+                  validator: (v) => (v == null || v.trim().isEmpty) ? 'Name is required' : null,
+                ),
+                const SizedBox(height: 16),
+
+                _label('Email'),
                 TextFormField(
                   controller: _emailCtrl,
                   keyboardType: TextInputType.emailAddress,
@@ -110,15 +119,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     hintText: 'you@example.com',
                     prefixIcon: Icon(Icons.mail_outline_rounded),
                   ),
-                  validator: (v) => (v == null || !v.contains('@'))
-                      ? 'Enter a valid email'
-                      : null,
+                  validator: (v) => (v == null || !v.contains('@')) ? 'Enter a valid email' : null,
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
 
-                // Password
-                Text('Password', style: AppTypography.labelMd),
-                const SizedBox(height: 8),
+                _label('Password'),
                 TextFormField(
                   controller: _passwordCtrl,
                   obscureText: _obscure,
@@ -131,41 +136,32 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       onPressed: () => setState(() => _obscure = !_obscure),
                     ),
                   ),
-                  validator: (v) => (v == null || v.length < 6)
-                      ? 'Password must be at least 6 characters'
-                      : null,
+                  validator: (v) => (v == null || v.length < 6) ? 'Minimum 6 characters' : null,
+                ),
+                const SizedBox(height: 16),
+
+                _label('Confirm Password'),
+                TextFormField(
+                  controller: _confirmCtrl,
+                  obscureText: _obscure,
+                  style: AppTypography.bodyLg,
+                  decoration: const InputDecoration(
+                    hintText: '••••••••',
+                    prefixIcon: Icon(Icons.lock_outline_rounded),
+                  ),
+                  validator: (v) => v != _passwordCtrl.text ? 'Passwords do not match' : null,
                 ),
                 const SizedBox(height: 32),
 
-                // Submit
                 SizedBox(
                   width: double.infinity,
                   height: 52,
                   child: ElevatedButton(
                     onPressed: _loading ? null : _submit,
                     child: _loading
-                        ? const SizedBox(
-                            width: 20, height: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.bgBase),
-                          )
-                        : const Text('LOGIN'),
+                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.bgBase))
+                        : const Text('CREATE ACCOUNT'),
                   ),
-                ),
-                const SizedBox(height: 16),
-
-                // Register link
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text("Don't have an account? ", style: AppTypography.bodySm.copyWith(color: AppColors.textSecondary)),
-                    GestureDetector(
-                      onTap: () => context.go('/auth/register'),
-                      child: Text('Register', style: AppTypography.bodySm.copyWith(
-                        color: AppColors.primary400,
-                        fontWeight: FontWeight.w700,
-                      )),
-                    ),
-                  ],
                 ),
               ],
             ),
@@ -174,4 +170,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       ),
     );
   }
+
+  Widget _label(String text) => Padding(
+    padding: const EdgeInsets.only(bottom: 8),
+    child: Text(text, style: AppTypography.labelMd),
+  );
 }

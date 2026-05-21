@@ -6,6 +6,7 @@ import { NotificationProvider } from './contexts/NotificationContext';
 import { MusicProvider } from './contexts/MusicContext';
 import { AuthProvider } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/layout/ProtectedRoute';
+import { Toaster } from 'react-hot-toast';
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
@@ -34,6 +35,28 @@ function App() {
           <TimerProvider>
             <MusicProvider>
               <Router>
+                <Toaster
+                  position="bottom-right"
+                  toastOptions={{
+                    duration: 4000,
+                    style: {
+                      background: 'rgba(18, 18, 28, 0.95)',
+                      color: '#e5e5e5',
+                      border: '1px solid rgba(255, 255, 255, 0.08)',
+                      backdropFilter: 'blur(16px)',
+                      borderRadius: '12px',
+                      fontSize: '14px',
+                      fontFamily: 'inherit',
+                      boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+                    },
+                    success: {
+                      iconTheme: { primary: '#ffab00', secondary: '#0d0d18' },
+                    },
+                    error: {
+                      iconTheme: { primary: '#f87171', secondary: '#0d0d18' },
+                    },
+                  }}
+                />
                 <Routes>
                   {/* Public Auth Routes */}
                   <Route path="/login" element={<LoginPage />} />
